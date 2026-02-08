@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { defineConfig, type BlogEngineConfig } from '@blog-engine/shared';
+import { defineConfig, type BlogEngineConfig } from '@blazion/shared';
 
 export interface RuntimeConfig {
     config: BlogEngineConfig;
@@ -59,9 +59,9 @@ export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
 
 async function loadConfigFile(workspaceRoot: string): Promise<Partial<BlogEngineConfig> | null> {
     const configPaths = [
-        path.join(workspaceRoot, 'blog-engine.config.ts'),
-        path.join(workspaceRoot, 'blog-engine.config.mjs'),
-        path.join(workspaceRoot, 'blog-engine.config.js'),
+        path.join(workspaceRoot, 'blazion.config.ts'),
+        path.join(workspaceRoot, 'blazion.config.mjs'),
+        path.join(workspaceRoot, 'blazion.config.js'),
     ];
 
     const existing = configPaths.find((candidate) => fs.existsSync(candidate));
@@ -74,7 +74,7 @@ async function loadConfigFile(workspaceRoot: string): Promise<Partial<BlogEngine
         const loaded = await import(fileUrl);
         return loaded.default ?? null;
     } catch (error) {
-        console.warn('Could not load blog-engine.config file, using env/default config only.', error);
+        console.warn('Could not load blazion.config file, using env/default config only.', error);
         return null;
     }
 }

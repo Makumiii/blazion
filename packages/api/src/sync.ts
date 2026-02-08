@@ -1,4 +1,4 @@
-import type { BlogEngineConfig } from '@blog-engine/shared';
+import type { BlogEngineConfig } from '@blazion/shared';
 
 import { DatabaseService } from './db';
 import { NotionService } from './notion';

@@ -3,8 +3,8 @@
 Use this checklist to create showcase posts quickly in Notion:
 
 ## Post 1: Product Intro
-- `Title`: Welcome to Blog Engine
-- `Slug`: welcome-to-blog-engine
+- `Title`: Welcome to Blazion
+- `Slug`: welcome-to-blazion
 - `Summary`: Intro post synced from Notion
 - `Author`: Demo Author
 - `Tags`: intro, product
@@ -22,7 +22,7 @@ Use this checklist to create showcase posts quickly in Notion:
 - `Status`: ready
 - `Published`: today
 - `Featured`: unchecked
-- `Related Posts`: link to `Welcome to Blog Engine`
+- `Related Posts`: link to `Welcome to Blazion`
 - `Public Share`: enabled
 
 ## Post 3: Private Draft

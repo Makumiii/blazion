@@ -2,11 +2,15 @@
 
 import { useEffect } from 'react';
 
-const SESSION_HINT_SENT_KEY = 'blog-engine-sync-hint-sent';
-const SESSION_ID_KEY = 'blog-engine-sync-session-id';
+const SESSION_HINT_SENT_KEY = 'blazion-sync-hint-sent';
+const SESSION_ID_KEY = 'blazion-sync-session-id';
 
 function apiBaseUrl() {
-    return process.env.NEXT_PUBLIC_BLOG_ENGINE_API_URL ?? 'http://localhost:3000';
+    return (
+        process.env.NEXT_PUBLIC_BLAZION_API_URL ??
+        process.env.BLAZION_API_URL ??
+        'http://localhost:3000'
+    );
 }
 
 function getOrCreateSessionId() {

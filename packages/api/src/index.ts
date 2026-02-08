@@ -3,8 +3,8 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { rateLimiter } from 'hono-rate-limiter';
 import { Cron } from 'croner';
-import { postsQuerySchema } from '@blog-engine/shared';
-import type { BlogPost } from '@blog-engine/shared';
+import { postsQuerySchema } from '@blazion/shared';
+import type { BlogPost } from '@blazion/shared';
 
 import { loadRuntimeConfig } from './config';
 import { DatabaseService } from './db';
@@ -512,7 +512,7 @@ app.get('/api/posts/:slug/content', async (c) => {
 // Start server
 const port = runtime.config.server.port;
 
-console.log(`Blog Engine API running on http://localhost:${port}`);
+console.log(`Blazion API running on http://localhost:${port}`);
 
 export default {
     port,

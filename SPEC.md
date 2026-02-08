@@ -1,4 +1,4 @@
-# Notion Blog Engine - Specification
+# Notion Blazion - Specification
 
 > A backend application that uses Notion as a content management system for blog websites.
 
@@ -6,7 +6,7 @@
 
 ## Overview
 
-Blog Engine syncs content from a Notion database to a local SQLite database, exposes REST APIs for frontend consumption, and ships with a pre-built Next.js frontend for a complete blog experience.
+Blazion syncs content from a Notion database to a local SQLite database, exposes REST APIs for frontend consumption, and ships with a pre-built Next.js frontend for a complete blog experience.
 
 ### Key Features
 
@@ -39,23 +39,23 @@ Blog Engine syncs content from a Notion database to a local SQLite database, exp
 ```
 blogEngine/
 ├── packages/
-│   ├── api/          # @blog-engine/api - Hono.js backend (Bun runtime)
-│   ├── web/          # @blog-engine/web - Next.js SSR frontend
-│   └── shared/       # @blog-engine/shared - Shared types and utilities
+│   ├── api/          # @blazion/api - Hono.js backend (Bun runtime)
+│   ├── web/          # @blazion/web - Next.js SSR frontend
+│   └── shared/       # @blazion/shared - Shared types and utilities
 ├── TASKS.md          # Implementation progress tracker
 ├── SPEC.md           # This file
 ├── turbo.json        # Turborepo configuration
 ├── pnpm-workspace.yaml
 ├── package.json
 ├── tsconfig.json
-└── blog-engine.config.ts
+└── blazion.config.ts
 ```
 
 ---
 
 ## Tech Stack
 
-### Backend (@blog-engine/api)
+### Backend (@blazion/api)
 | Technology | Purpose |
 |------------|---------|
 | Bun | JavaScript runtime |
@@ -66,7 +66,7 @@ blogEngine/
 | Croner | Cron job scheduling |
 | Zod | Schema validation |
 
-### Frontend (@blog-engine/web)
+### Frontend (@blazion/web)
 | Technology | Purpose |
 |------------|---------|
 | Next.js 14+ | React framework with SSR/SSG |
@@ -76,7 +76,7 @@ blogEngine/
 | react-notion-x | Notion page rendering |
 | Tailwind CSS | Styling |
 
-### Shared (@blog-engine/shared)
+### Shared (@blazion/shared)
 | Technology | Purpose |
 |------------|---------|
 | TypeScript | Type definitions |
@@ -149,8 +149,8 @@ Base URL: `http://localhost:3000`
 ## Configuration
 
 ```typescript
-// blog-engine.config.ts
-import { defineConfig } from '@blog-engine/shared';
+// blazion.config.ts
+import { defineConfig } from '@blazion/shared';
 
 export default defineConfig({
   notion: {
@@ -291,7 +291,7 @@ pnpm typecheck    # TypeScript check
 pnpm test         # Run tests
 
 # Package-specific
-pnpm --filter @blog-engine/api dev
-pnpm --filter @blog-engine/web dev
-pnpm --filter @blog-engine/api setup --page-id=<id>
+pnpm --filter @blazion/api dev
+pnpm --filter @blazion/web dev
+pnpm --filter @blazion/api setup --page-id=<id>
 ```

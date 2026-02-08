@@ -1,5 +1,5 @@
-// @blog-engine/shared
-// Shared types and utilities for the blog engine
+// @blazion/shared
+// Shared types and utilities for the blazion
 
 export * from './types';
 export * from './config';

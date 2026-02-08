@@ -1,5 +1,5 @@
 {
-    "name": "@blog-engine/api",
+    "name": "@blazion/api",
     "version": "0.1.0",
     "private": true,
     "type": "module",
@@ -13,7 +13,7 @@
         "setup": "bun run src/cli/setup.ts"
     },
     "dependencies": {
-        "@blog-engine/shared": "workspace:*",
+        "@blazion/shared": "workspace:*",
         "@notionhq/client": "^2.2.0",
         "croner": "^8.0.0",
         "hono": "^4.0.0",
