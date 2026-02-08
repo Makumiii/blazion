@@ -146,7 +146,7 @@ export class NotionService {
                 start_cursor: cursor,
                 page_size: 100,
             };
-            const response = await this.client.databases.query(query);
+            const response = await this.withRetry(() => this.client.databases.query(query));
 
             for (const result of response.results) {
                 if (!isPageObjectResponse(result)) {
@@ -197,7 +197,48 @@ export class NotionService {
     }
 
     public getRecordMap(pageId: string): Promise<unknown> {
-        return this.notionApi.getPage(pageId);
+        return this.withRetry(() => this.notionApi.getPage(pageId));
+    }
+
+    public async getBlockContent(pageId: string): Promise<unknown[]> {
+        const blocks: unknown[] = [];
+        let cursor: string | undefined;
+        let hasMore = true;
+
+        while (hasMore) {
+            const response = await this.withRetry(() =>
+                this.client.blocks.children.list({
+                    block_id: pageId,
+                    start_cursor: cursor,
+                    page_size: 100,
+                }),
+            );
+
+            blocks.push(...response.results);
+            hasMore = response.has_more;
+            cursor = response.next_cursor ?? undefined;
+        }
+
+        return blocks;
+    }
+
+    private async withRetry<T>(fn: () => Promise<T>, maxAttempts = 4): Promise<T> {
+        let lastError: unknown;
+        for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+            try {
+                return await fn();
+            } catch (error) {
+                lastError = error;
+                const retryable = isRetryableNotionError(error);
+                if (!retryable || attempt === maxAttempts) {
+                    throw error;
+                }
+                const backoffMs = Math.min(4000, 300 * 2 ** (attempt - 1));
+                await Bun.sleep(backoffMs);
+            }
+        }
+
+        throw lastError;
     }
 }
 
@@ -218,4 +259,23 @@ function isPartialPageObjectResponse(result: unknown): result is PartialPageObje
         return false;
     }
     return !('properties' in result);
+}
+
+function isRetryableNotionError(error: unknown): boolean {
+    if (typeof error !== 'object' || error === null) {
+        return false;
+    }
+
+    const candidate = error as { code?: string; status?: number };
+    return (
+        candidate.code === 'rate_limited' ||
+        candidate.code === 'service_unavailable' ||
+        candidate.code === 'internal_server_error' ||
+        candidate.status === 408 ||
+        candidate.status === 429 ||
+        candidate.status === 500 ||
+        candidate.status === 502 ||
+        candidate.status === 503 ||
+        candidate.status === 504
+    );
 }

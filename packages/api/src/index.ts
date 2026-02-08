@@ -41,7 +41,7 @@ if (syncService !== null) {
 
     new Cron(runtime.config.cron.imageRefreshInterval, async () => {
         try {
-            const result = await syncService.syncNow();
+            const result = await syncService.refreshImageUrls();
             console.log('Cron: image refresh run completed', result);
         } catch (error) {
             console.error('Cron: image refresh run failed', error);
@@ -62,6 +62,32 @@ app.get('/api/health', (c) => {
         notionConfigured: runtime.notionConfigured,
         timestamp: new Date().toISOString(),
     });
+});
+
+app.post('/api/sync/images', async (c) => {
+    if (syncService === null) {
+        return c.json(
+            {
+                error: 'Not configured',
+                message: 'Set NOTION_API_KEY and NOTION_DATABASE_ID to enable sync.',
+            },
+            503,
+        );
+    }
+
+    try {
+        const result = await syncService.refreshImageUrls();
+        return c.json(result);
+    } catch (error) {
+        console.error('Manual image refresh failed', error);
+        return c.json(
+            {
+                error: 'Refresh failed',
+                message: 'Could not refresh image URLs from Notion.',
+            },
+            500,
+        );
+    }
 });
 
 app.post('/api/sync', async (c) => {
@@ -198,10 +224,23 @@ app.get('/api/posts/:slug/content', async (c) => {
         }
     }
 
-    return c.json({
-        recordMap: {},
-        renderMode: 'blocks',
-    });
+    try {
+        const blocks = await notionService.getBlockContent(post.notionPageId);
+        return c.json({
+            recordMap: {},
+            blocks,
+            renderMode: 'blocks',
+        });
+    } catch (error) {
+        console.error('Failed to fetch private blocks', error);
+        return c.json(
+            {
+                error: 'Content fetch failed',
+                message: `Could not fetch private block content for post "${slug}"`,
+            },
+            502,
+        );
+    }
 });
 
 // Start server

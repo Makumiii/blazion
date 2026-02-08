@@ -194,13 +194,13 @@ pnpm --filter @blog-engine/web build
 **Goal:** Production-ready with documentation and edge cases handled
 
 ### Deliverables
-- [ ] Full end-to-end flow working
-- [ ] Error handling for sync failures
-- [ ] Image URL refresh tested
-- [ ] Fallback block renderer for private pages
-- [ ] README with setup instructions
-- [ ] Sample blog-engine.config.ts
-- [ ] Demo content for showcasing
+- [x] Full end-to-end flow working
+- [x] Error handling for sync failures
+- [x] Image URL refresh tested
+- [x] Fallback block renderer for private pages
+- [x] README with setup instructions
+- [x] Sample blog-engine.config.ts
+- [x] Demo content for showcasing
 
 ### Verification
 ```bash
@@ -222,10 +222,10 @@ pnpm dev  # Starts both API and Web
 
 ### Success Criteria
 - [ ] Fresh clone + setup works in < 5 minutes
-- [ ] README instructions are complete and accurate
-- [ ] No console errors in production build
-- [ ] Handles Notion API rate limits gracefully
-- [ ] Handles network failures without crashing
+- [x] README instructions are complete and accurate
+- [x] No console errors in production build
+- [x] Handles Notion API rate limits gracefully
+- [x] Handles network failures without crashing
 
 ---
 

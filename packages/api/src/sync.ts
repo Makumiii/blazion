@@ -25,6 +25,14 @@ export class SyncService {
     }
 
     public async syncNow(): Promise<SyncResult> {
+        return this.performSync({ refreshOnly: false });
+    }
+
+    public async refreshImageUrls(): Promise<SyncResult> {
+        return this.performSync({ refreshOnly: true });
+    }
+
+    private async performSync(input: { refreshOnly: boolean }): Promise<SyncResult> {
         const result: SyncResult = {
             synced: 0,
             skipped: 0,
@@ -36,6 +44,11 @@ export class SyncService {
         for (const post of posts) {
             try {
                 if (this.config.sync.publicOnly && !post.isPublic) {
+                    result.skipped += 1;
+                    continue;
+                }
+
+                if (input.refreshOnly && !post.bannerImageUrl) {
                     result.skipped += 1;
                     continue;
                 }
