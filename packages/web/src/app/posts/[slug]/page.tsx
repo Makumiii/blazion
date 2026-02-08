@@ -27,14 +27,14 @@ export async function generateMetadata({ params }): Promise<Metadata> {
     const post = await fetchPost(params.slug, { revalidate });
     if (!post) {
         return {
-            title: 'Post Not Found | Blog Engine',
+            title: 'Post Not Found | Blazion',
             description: 'The requested post could not be found.',
         };
     }
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3001';
     const postUrl = `${siteUrl}/posts/${encodeURIComponent(post.slug)}`;
-    const description = post.summary ?? 'Read this post on Blog Engine.';
+    const description = post.summary ?? 'Read this post on Blazion.';
     const images = post.bannerImageUrl ? [{ url: post.bannerImageUrl, alt: post.title }] : undefined;
     const keywords = [post.title, ...(post.tags ?? []), ...(post.author ? [post.author] : [])];
     const publishedTime = post.publishedAt ?? undefined;
@@ -42,7 +42,7 @@ export async function generateMetadata({ params }): Promise<Metadata> {
     const authors = post.author ? [post.author] : undefined;
 
     return {
-        title: `${post.title} | Blog Engine`,
+        title: `${post.title} | Blazion`,
         description,
         keywords,
         authors: post.author ? [{ name: post.author }] : undefined,

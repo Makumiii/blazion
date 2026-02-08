@@ -1,5 +1,9 @@
 function apiBaseUrl() {
-    return process.env.BLOG_ENGINE_API_URL ?? 'http://localhost:3000';
+    return (
+        process.env.BLAZION_API_URL ??
+        process.env.NEXT_PUBLIC_BLAZION_API_URL ??
+        'http://localhost:3000'
+    );
 }
 
 async function safeJson(url, options) {

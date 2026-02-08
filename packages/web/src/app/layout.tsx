@@ -37,17 +37,17 @@ const sourceSerif = localFont({
 
 export const metadata: Metadata = {
     metadataBase: new URL(siteUrl),
-    title: 'Blog Engine',
+    title: 'Blazion',
     description: 'A minimalist publication powered by Notion',
     openGraph: {
         type: 'website',
-        title: 'Blog Engine',
+        title: 'Blazion',
         description: 'A minimalist publication powered by Notion',
         url: siteUrl,
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'Blog Engine',
+        title: 'Blazion',
         description: 'A minimalist publication powered by Notion',
     },
 };
@@ -72,7 +72,7 @@ export default async function RootLayout({ children }) {
                 <header className="site-header">
                     <div className="shell nav-wrap">
                         <Link href="/" className="brand-mark">
-                            Blog Engine
+                            Blazion
                         </Link>
                         <div />
                         <ThemeToggle />

@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     reactStrictMode: true,
-    transpilePackages: ['@blog-engine/shared'],
+    transpilePackages: ['@blazion/shared'],
     images: {
         formats: ['image/avif', 'image/webp'],
         remotePatterns: [

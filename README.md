@@ -1,11 +1,11 @@
-# Blog Engine
+# Blazion
 
 A monorepo blog platform that uses Notion as the CMS, Bun + Hono as API, SQLite for local persistence, and Next.js for SSR frontend rendering.
 
 ## Stack
-- `@blog-engine/api`: Bun runtime, Hono, Notion sync, SQLite
-- `@blog-engine/web`: Next.js App Router frontend
-- `@blog-engine/shared`: shared types/config/validators
+- `@blazion/api`: Bun runtime, Hono, Notion sync, SQLite
+- `@blazion/web`: Next.js App Router frontend
+- `@blazion/shared`: shared types/config/validators
 
 ## Quick Start
 1. Install dependencies:
@@ -21,7 +21,7 @@ cp .env.example .env
 
 4. Create Notion database from a parent page:
 ```bash
-pnpm --filter @blog-engine/api run setup -- --page-id=<your-notion-page-id>
+pnpm --filter @blazion/api run setup -- --page-id=<your-notion-page-id>
 ```
 - Copy returned value to `NOTION_DATABASE_ID` in `.env`
 
@@ -36,7 +36,7 @@ pnpm dev
 3. In Notion, open the parent page (or database) you want to use and share it with your integration.
 4. Run setup to create the blog database under that page:
 ```bash
-pnpm --filter @blog-engine/api run setup -- --page-id=<your-notion-page-id>
+pnpm --filter @blazion/api run setup -- --page-id=<your-notion-page-id>
 ```
 5. Copy the returned database id into `.env` as `NOTION_DATABASE_ID`.
 
@@ -48,7 +48,8 @@ Official Notion docs:
 - `NOTION_API_KEY`: Notion integration key
 - `NOTION_DATABASE_ID`: blog database id
 - `PORT`: API port (default `3000`)
-- `NEXT_PUBLIC_BLOG_ENGINE_API_URL`: web-to-api base URL (default `http://localhost:3000`)
+- `BLAZION_API_URL` or `NEXT_PUBLIC_BLAZION_API_URL`: web-to-api base URL (default `http://localhost:3000`)
+- `BLAZION_API_URL` or `NEXT_PUBLIC_BLAZION_API_URL`: API base URL aliases
 - `DATABASE_PATH`: SQLite DB path (default `./data/blog.db`)
 - `SYNC_INTERVAL`: cron for content sync (default `*/30 * * * *`)
 - `IMAGE_REFRESH_INTERVAL`: cron for image refresh (default `0 * * * *`)
@@ -66,7 +67,7 @@ Official Notion docs:
 - `SOCIAL_EMAIL`, `SOCIAL_PHONENUMBER`, `SOCIAL_FACEBOOK`, `SOCIAL_GITHUB`
 
 ## Configuration File Example
-`blog-engine.config.ts` is loaded by the API at runtime and merged with env-driven overrides.
+`blazion.config.ts` is loaded by the API at runtime and merged with env-driven overrides.
 
 ```ts
 const config = {
@@ -176,7 +177,7 @@ curl -X POST http://localhost:3000/api/sync \
 - Manual sync routes (`/api/sync`, `/api/sync/images`) can be API-key protected via env vars.
 
 ## Social Dock
-- Configure `socials` in `blog-engine.config.ts` (or via the `SOCIAL_*` env vars shown above).
+- Configure `socials` in `blazion.config.ts` (or via the `SOCIAL_*` env vars shown above).
 - Supported keys: `linkedin`, `x`, `instagram`, `linktree`/`linkedtree`, `email`, `phonenumber`, `facebook`, `github`.
 - Web app renders these as a right-side collapsible dock.
 
@@ -191,7 +192,7 @@ pnpm test
 
 Package-specific:
 ```bash
-pnpm --filter @blog-engine/api dev
-pnpm --filter @blog-engine/web dev
-pnpm --filter @blog-engine/api run setup -- --page-id=<id>
+pnpm --filter @blazion/api dev
+pnpm --filter @blazion/web dev
+pnpm --filter @blazion/api run setup -- --page-id=<id>
 ```

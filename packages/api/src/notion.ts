@@ -1,5 +1,5 @@
-import type { BlogPost, PostStatus } from '@blog-engine/shared';
-import { normalizeTags, slugify } from '@blog-engine/shared';
+import type { BlogPost, PostStatus } from '@blazion/shared';
+import { normalizeTags, slugify } from '@blazion/shared';
 import { createHash } from 'node:crypto';
 import { Client } from '@notionhq/client';
 import type {

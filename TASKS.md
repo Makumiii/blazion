@@ -1,4 +1,4 @@
-# Notion Blog Engine - Phased Implementation
+# Notion Blazion - Phased Implementation
 
 ---
 
@@ -17,7 +17,7 @@
 
 ### Deliverables
 - [x] Turborepo monorepo initialized with pnpm
-- [x] Three packages: `@blog-engine/shared`, `@blog-engine/api`, `@blog-engine/web`
+- [x] Three packages: `@blazion/shared`, `@blazion/api`, `@blazion/web`
 - [x] TypeScript configured with path aliases
 - [x] ESLint + Prettier configured
 - [x] Environment variables template (.env.example)
@@ -52,8 +52,8 @@ pnpm typecheck         # TypeScript compiles
 
 ### Verification
 ```bash
-pnpm --filter @blog-engine/shared test   # Unit tests pass
-pnpm --filter @blog-engine/shared build  # Compiles
+pnpm --filter @blazion/shared test   # Unit tests pass
+pnpm --filter @blazion/shared build  # Compiles
 ```
 
 ### Success Criteria
@@ -78,11 +78,11 @@ pnpm --filter @blog-engine/shared build  # Compiles
 ### Verification
 ```bash
 # 1. Setup creates database in Notion
-pnpm --filter @blog-engine/api setup --page-id=<test-page-id>
+pnpm --filter @blazion/api setup --page-id=<test-page-id>
 # Expected: Outputs new database ID
 
 # 2. Server starts
-pnpm --filter @blog-engine/api dev
+pnpm --filter @blazion/api dev
 # Expected: "Server running on http://localhost:3000"
 
 # 3. Health check works
@@ -166,11 +166,11 @@ curl http://localhost:3000/api/posts/my-test-slug/content
 ### Verification
 ```bash
 # 1. Dev server runs
-pnpm --filter @blog-engine/web dev
+pnpm --filter @blazion/web dev
 # Expected: "Ready on http://localhost:3001"
 
 # 2. Build succeeds (SSR pages pre-render)
-pnpm --filter @blog-engine/web build
+pnpm --filter @blazion/web build
 # Expected: No errors, pages listed in output
 
 # 3. Browser tests
@@ -199,7 +199,7 @@ pnpm --filter @blog-engine/web build
 - [x] Image URL refresh tested
 - [x] Fallback block renderer for private pages
 - [x] README with setup instructions
-- [x] Sample blog-engine.config.ts
+- [x] Sample blazion.config.ts
 - [x] Demo content for showcasing
 
 ### Verification
