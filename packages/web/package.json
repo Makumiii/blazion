@@ -7,7 +7,7 @@
         "build": "next build",
         "start": "next start",
         "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
-        "typecheck": "tsc --noEmit",
+        "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
         "clean": "rm -rf .next"
     },
     "dependencies": {

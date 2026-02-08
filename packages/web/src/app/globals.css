@@ -1,29 +1,248 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import 'react-notion-x/src/styles.css';
 
 :root {
-  --background: #fafafa;
-  --foreground: #1a1a1a;
-  --muted: #6b7280;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
-  --card: #ffffff;
-  --border: #e5e7eb;
+  --background: #f5f2ea;
+  --foreground: #1d1a16;
+  --muted: #6a6257;
+  --accent: #0f766e;
+  --accent-hover: #115e59;
+  --card: #fffdfa;
+  --border: #ddd4c7;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #fafafa;
-  --muted: #9ca3af;
-  --accent: #818cf8;
-  --accent-hover: #a5b4fc;
-  --card: #18181b;
-  --border: #27272a;
+  --background: #101314;
+  --foreground: #f3efe6;
+  --muted: #a8a294;
+  --accent: #2dd4bf;
+  --accent-hover: #5eead4;
+  --card: #161c1f;
+  --border: #2a3437;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Space Grotesk', 'Avenir Next', 'Segoe UI', sans-serif;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.shell {
+  width: min(1120px, 92vw);
+  margin: 0 auto;
+}
+
+.site-header {
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: color-mix(in srgb, var(--background) 92%, transparent);
+}
+
+.nav-wrap {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.brand-mark {
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.nav-links {
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+  color: var(--muted);
+}
+
+.theme-toggle {
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 0.4rem 0.85rem;
+  background: var(--card);
+  cursor: pointer;
+}
+
+.home-grid {
+  padding: 3rem 0 4rem;
+  display: grid;
+  gap: 2.2rem;
+}
+
+.hero {
+  border: 1px solid var(--border);
+  background: radial-gradient(circle at 85% 8%, color-mix(in srgb, var(--accent) 25%, transparent), transparent 40%), var(--card);
+  border-radius: 1.25rem;
+  padding: 2rem;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-size: 0.76rem;
+  margin: 0 0 0.8rem;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 3.4rem);
+  line-height: 1.05;
+}
+
+.hero-copy {
+  max-width: 64ch;
+  color: var(--muted);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  padding: 0.6rem 1rem;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.bento {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.tile, .post-card, .recent-card {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1rem;
+  background: var(--card);
+}
+
+.tile h2, .post-card h2, .recent-card h3 {
+  margin: 0.4rem 0;
+}
+
+.tile-meta {
+  color: var(--muted);
+  font-size: 0.86rem;
+  margin: 0;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.tags a {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.section-head h1,
+.section-head h2 {
+  margin: 0;
+}
+
+.recent {
+  display: grid;
+  gap: 1rem;
+}
+
+.recent-list, .list-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.listing {
+  padding: 2rem 0 4rem;
+  display: grid;
+  gap: 1.2rem;
+}
+
+.pager {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.4rem;
+}
+
+.article-shell {
+  padding: 2rem 0 4rem;
+}
+
+.article {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.article h1 {
+  margin: 0.2rem 0 0.8rem;
+  font-size: clamp(1.9rem, 4vw, 2.8rem);
+}
+
+.lead {
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: transparent;
+  z-index: 40;
+}
+
+.reading-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 120ms linear;
+}
+
+.notion-wrap {
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 720px) {
+  .nav-links {
+    justify-content: flex-start;
+  }
+
+  .nav-wrap {
+    grid-template-columns: auto auto auto;
+  }
+
+  .section-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }

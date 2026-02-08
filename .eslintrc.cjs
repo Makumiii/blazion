@@ -19,4 +19,13 @@ module.exports = {
     rules: {
         'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     },
+    overrides: [
+        {
+            files: ['packages/web/src/**/*.{js,jsx,ts,tsx}'],
+            rules: {
+                // Base ESLint rule does not track JSX usage without react plugin.
+                'no-unused-vars': 'off',
+            },
+        },
+    ],
 };

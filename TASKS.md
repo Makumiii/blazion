@@ -153,15 +153,15 @@ curl http://localhost:3000/api/posts/my-test-slug/content
 **Goal:** Beautiful, SEO-optimized blog frontend
 
 ### Deliverables
-- [ ] Next.js 14 with App Router
+- [x] Next.js 14 with App Router
 - [ ] Shadcn UI components installed
-- [ ] Design system implemented (colors, typography)
-- [ ] Dark/light mode toggle
+- [x] Design system implemented (colors, typography)
+- [x] Dark/light mode toggle
 - [ ] Home page with featured posts (SSG)
-- [ ] Posts list page with pagination (SSR)
-- [ ] Single post page with react-notion-x (SSR/ISR)
-- [ ] Tag filter page (SSR)
-- [ ] Responsive design (mobile-first)
+- [x] Posts list page with pagination (SSR)
+- [x] Single post page with react-notion-x (SSR/ISR)
+- [x] Tag filter page (SSR)
+- [x] Responsive design (mobile-first)
 
 ### Verification
 ```bash
@@ -184,8 +184,8 @@ pnpm --filter @blog-engine/web build
 ### Success Criteria
 - [ ] Lighthouse SEO score > 90
 - [ ] All pages render without JS (view source shows content)
-- [ ] Dark/light mode persists across refresh
-- [ ] Post content renders with proper Notion formatting
+- [x] Dark/light mode persists across refresh
+- [x] Post content renders with proper Notion formatting
 - [ ] No layout shift on page load
 
 ---
