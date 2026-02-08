@@ -2,16 +2,26 @@
 
 ---
 
+## Confirmed Constraints
+- [x] Deliver phase-by-phase with each phase fully testable before moving on
+- [x] Keep API runtime Bun-only
+- [x] Keep `sync.publicOnly=true`
+- [x] Defer frontend-heavy work until API is stable
+- [x] Keep tests minimal per phase
+- [x] Update this checklist in real time
+
+---
+
 ## Phase 1: Monorepo Foundation
 **Goal:** Set up the project structure with all tooling configured
 
 ### Deliverables
-- [ ] Turborepo monorepo initialized with pnpm
-- [ ] Three packages: `@blog-engine/shared`, `@blog-engine/api`, `@blog-engine/web`
-- [ ] TypeScript configured with path aliases
-- [ ] ESLint + Prettier configured
-- [ ] Environment variables template (.env.example)
-- [ ] Basic package.json scripts working
+- [x] Turborepo monorepo initialized with pnpm
+- [x] Three packages: `@blog-engine/shared`, `@blog-engine/api`, `@blog-engine/web`
+- [x] TypeScript configured with path aliases
+- [x] ESLint + Prettier configured
+- [x] Environment variables template (.env.example)
+- [x] Basic package.json scripts working
 
 ### Verification
 ```bash
@@ -23,10 +33,10 @@ pnpm typecheck         # TypeScript compiles
 ```
 
 ### Success Criteria
-- [ ] `packages/shared/dist/` exists after build
-- [ ] `packages/api/dist/` exists after build  
-- [ ] `packages/web/.next/` exists after build
-- [ ] No TypeScript errors
+- [x] `packages/shared/dist/` exists after build
+- [x] `packages/api/dist/` exists after build  
+- [x] `packages/web/.next/` exists after build
+- [x] No TypeScript errors
 
 ---
 
@@ -34,11 +44,11 @@ pnpm typecheck         # TypeScript compiles
 **Goal:** Define all shared types and configuration system
 
 ### Deliverables
-- [ ] Blog post schema types (matching Notion properties)
-- [ ] API response types (posts, pagination, errors)
-- [ ] Config types with `defineConfig` helper
-- [ ] Zod validators for runtime validation
-- [ ] Utility functions (slugify, date formatting)
+- [x] Blog post schema types (matching Notion properties)
+- [x] API response types (posts, pagination, errors)
+- [x] Config types with `defineConfig` helper
+- [x] Zod validators for runtime validation
+- [x] Utility functions (slugify, date formatting)
 
 ### Verification
 ```bash
@@ -47,10 +57,10 @@ pnpm --filter @blog-engine/shared build  # Compiles
 ```
 
 ### Success Criteria
-- [ ] Can import types in both api and web packages
-- [ ] `defineConfig({...})` provides autocomplete
-- [ ] Schema validation catches invalid data
-- [ ] Test: `validatePost({ title: '' })` throws validation error
+- [x] Can import types in both api and web packages
+- [x] `defineConfig({...})` provides autocomplete
+- [x] Schema validation catches invalid data
+- [x] Test: `validatePost({ title: '' })` throws validation error
 
 ---
 
@@ -220,9 +230,7 @@ pnpm dev  # Starts both API and Web
 ## Implementation Order
 
 ```
-Phase 1 ──► Phase 2 ──► Phase 3 ──► Phase 4 ──┐
-                │                              │
-                └──► Phase 5 ─────────────────►├──► Phase 6
+Phase 1 ──► Phase 2 ──► Phase 3 ──► Phase 4 ──► Phase 5 ──► Phase 6
 ```
 
 **Estimated Timeline:**

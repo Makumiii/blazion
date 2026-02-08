@@ -1,4 +1,3 @@
-// Placeholder utilities - will be implemented in Phase 2
 export function slugify(text: string): string {
     return text
         .toLowerCase()
@@ -8,6 +7,36 @@ export function slugify(text: string): string {
         .replace(/^-+|-+$/g, '');
 }
 
-export function formatDate(date: Date): string {
-    return date.toISOString().split('T')[0];
+export function formatDate(
+    value: string | Date,
+    locale = 'en-US',
+    options: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+    },
+): string {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        throw new Error('Invalid date provided to formatDate');
+    }
+    return new Intl.DateTimeFormat(locale, options).format(date);
+}
+
+export function normalizeTags(tags: string[]): string[] {
+    const seen = new Set<string>();
+    const normalized: string[] = [];
+    for (const tag of tags) {
+        const trimmed = tag.trim();
+        if (!trimmed) {
+            continue;
+        }
+        const key = trimmed.toLowerCase();
+        if (seen.has(key)) {
+            continue;
+        }
+        seen.add(key);
+        normalized.push(trimmed);
+    }
+    return normalized;
 }
