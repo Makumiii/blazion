@@ -14,6 +14,8 @@ export const blogPostSchema = z.object({
     status: postStatusSchema,
     publishedAt: z.string().datetime().nullable(),
     bannerImageUrl: z.string().url().nullable(),
+    featured: z.boolean().default(false),
+    relatedPostIds: z.array(z.string()).default([]),
     isPublic: z.boolean().default(false),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),

@@ -68,8 +68,30 @@ async function main(): Promise<void> {
             Banner: {
                 files: {},
             },
+            Featured: {
+                checkbox: {},
+            },
         },
     });
+
+    try {
+        await client.databases.update({
+            database_id: database.id,
+            properties: {
+                'Related Posts': {
+                    relation: {
+                        database_id: database.id,
+                        single_property: {},
+                    },
+                },
+            },
+        });
+    } catch (error) {
+        console.warn(
+            'Warning: could not auto-create "Related Posts" relation property. Add it manually in Notion if needed.',
+        );
+        console.warn(error);
+    }
 
     console.log('Notion database created successfully.');
     console.log(`Database ID: ${database.id}`);

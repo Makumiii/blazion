@@ -98,6 +98,34 @@ function readFileUrlProperty(
     return null;
 }
 
+function readCheckboxProperty(
+    result: QueryDatabaseResponse['results'][number],
+    key: string,
+): boolean {
+    const page = result as Record<string, unknown>;
+    const properties = page.properties as Record<string, any> | undefined;
+    const value = properties?.[key];
+    if (!value || value.type !== 'checkbox') {
+        return false;
+    }
+    return Boolean(value.checkbox);
+}
+
+function readRelationPropertyIds(
+    result: QueryDatabaseResponse['results'][number],
+    key: string,
+): string[] {
+    const page = result as Record<string, unknown>;
+    const properties = page.properties as Record<string, any> | undefined;
+    const value = properties?.[key];
+    if (!value || value.type !== 'relation' || !Array.isArray(value.relation)) {
+        return [];
+    }
+    return value.relation
+        .map((relation: { id?: string }) => relation.id)
+        .filter((id: string | undefined): id is string => Boolean(id));
+}
+
 export class NotionService {
     private readonly client: Client;
     private readonly notionApi: NotionAPI;
@@ -138,6 +166,8 @@ export class NotionService {
                 const status = readStatusProperty(result, 'Status');
                 const publishedAt = readDateProperty(result, 'Published');
                 const bannerImageUrl = readFileUrlProperty(result, 'Banner');
+                const featured = readCheckboxProperty(result, 'Featured');
+                const relatedPostIds = readRelationPropertyIds(result, 'Related Posts');
 
                 posts.push({
                     id: result.id,
@@ -150,6 +180,8 @@ export class NotionService {
                     status,
                     publishedAt,
                     bannerImageUrl,
+                    featured,
+                    relatedPostIds,
                     isPublic: Boolean(result.public_url),
                     notionUrl: result.url,
                     createdAt: result.created_time,

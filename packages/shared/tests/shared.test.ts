@@ -22,6 +22,8 @@ describe('shared package', () => {
                 status: 'ready',
                 publishedAt: null,
                 bannerImageUrl: null,
+                featured: false,
+                relatedPostIds: [],
                 isPublic: true,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),

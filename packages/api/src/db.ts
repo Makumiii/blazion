@@ -28,6 +28,8 @@ export class DatabaseService {
                 status TEXT NOT NULL,
                 published_at TEXT,
                 banner_image_url TEXT,
+                featured INTEGER NOT NULL DEFAULT 0,
+                related_post_ids_json TEXT NOT NULL DEFAULT '[]',
                 is_public INTEGER NOT NULL DEFAULT 0,
                 notion_url TEXT NOT NULL,
                 created_at TEXT NOT NULL,
@@ -45,6 +47,9 @@ export class DatabaseService {
                 created_at TEXT NOT NULL
             );
         `);
+
+        this.ensurePostColumn('featured', 'INTEGER NOT NULL DEFAULT 0');
+        this.ensurePostColumn('related_post_ids_json', "TEXT NOT NULL DEFAULT '[]'");
     }
 
     public isConnected(): boolean {
@@ -56,10 +61,11 @@ export class DatabaseService {
         const statement = this.db.query(`
             INSERT INTO posts (
                 id, notion_page_id, title, slug, summary, author, tags_json, status,
-                published_at, banner_image_url, is_public, notion_url, created_at, updated_at
+                published_at, banner_image_url, featured, related_post_ids_json, is_public,
+                notion_url, created_at, updated_at
             ) VALUES (
                 ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?, ?
             )
             ON CONFLICT(notion_page_id) DO UPDATE SET
                 id = excluded.id,
@@ -71,6 +77,8 @@ export class DatabaseService {
                 status = excluded.status,
                 published_at = excluded.published_at,
                 banner_image_url = excluded.banner_image_url,
+                featured = excluded.featured,
+                related_post_ids_json = excluded.related_post_ids_json,
                 is_public = excluded.is_public,
                 notion_url = excluded.notion_url,
                 updated_at = excluded.updated_at
@@ -87,6 +95,8 @@ export class DatabaseService {
             post.status,
             post.publishedAt,
             post.bannerImageUrl,
+            post.featured ? 1 : 0,
+            JSON.stringify(post.relatedPostIds),
             post.isPublic ? 1 : 0,
             post.notionUrl,
             post.createdAt,
@@ -101,5 +111,13 @@ export class DatabaseService {
             input.errors,
             new Date().toISOString(),
         );
+    }
+
+    private ensurePostColumn(columnName: string, definition: string): void {
+        const columns = this.db.query('PRAGMA table_info(posts)').all() as Array<{ name: string }>;
+        const hasColumn = columns.some((column) => column.name === columnName);
+        if (!hasColumn) {
+            this.db.exec(`ALTER TABLE posts ADD COLUMN ${columnName} ${definition}`);
+        }
     }
 }
