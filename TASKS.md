@@ -141,10 +141,10 @@ curl http://localhost:3000/api/posts/my-test-slug/content
 ```
 
 ### Success Criteria
-- [ ] Posts appear in API after sync
+- [x] Posts appear in API after sync
 - [x] Pagination works (test with limit=1)
-- [ ] Tag filtering returns correct subset
-- [ ] RecordMap is valid (can be parsed as JSON)
+- [x] Tag filtering returns correct subset
+- [x] RecordMap is valid (can be parsed as JSON)
 - [x] Cron logs show scheduled jobs
 
 ---
