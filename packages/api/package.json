@@ -14,10 +14,11 @@
     },
     "dependencies": {
         "@blog-engine/shared": "workspace:*",
-        "hono": "^4.0.0",
         "@notionhq/client": "^2.2.0",
-        "notion-client": "^6.16.0",
         "croner": "^8.0.0",
+        "hono": "^4.0.0",
+        "hono-rate-limiter": "^0.5.3",
+        "notion-client": "^6.16.0",
         "zod": "^3.22.0"
     },
     "devDependencies": {

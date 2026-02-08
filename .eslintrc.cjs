@@ -21,6 +21,17 @@ module.exports = {
     },
     overrides: [
         {
+            files: ['**/*.{ts,tsx}'],
+            parser: '@typescript-eslint/parser',
+            parserOptions: {
+                ecmaVersion: 'latest',
+                sourceType: 'module',
+                ecmaFeatures: {
+                    jsx: true,
+                },
+            },
+        },
+        {
             files: ['packages/web/src/**/*.{js,jsx,ts,tsx}'],
             rules: {
                 // Base ESLint rule does not track JSX usage without react plugin.

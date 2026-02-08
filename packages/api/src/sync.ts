@@ -53,7 +53,14 @@ export class SyncService {
                     continue;
                 }
 
-                this.db.upsertPost(post);
+                const readTimeMinutes = input.refreshOnly
+                    ? post.readTimeMinutes
+                    : await this.notion.estimateReadTime(post.notionPageId, post.isPublic);
+
+                this.db.upsertPost({
+                    ...post,
+                    readTimeMinutes,
+                });
                 result.synced += 1;
             } catch (error) {
                 console.error('Failed to sync post', post.slug, error);

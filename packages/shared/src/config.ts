@@ -1,5 +1,17 @@
 import { z } from 'zod';
 
+export const socialLinksSchema = z.object({
+    linkedin: z.string().url().optional(),
+    x: z.string().url().optional(),
+    instagram: z.string().url().optional(),
+    linktree: z.string().url().optional(),
+    linkedtree: z.string().url().optional(),
+    email: z.string().email().optional(),
+    phonenumber: z.string().min(3).optional(),
+    facebook: z.string().url().optional(),
+    github: z.string().url().optional(),
+});
+
 export const blogEngineConfigSchema = z.object({
     notion: z.object({
         integrationKey: z.string().min(1),
@@ -18,6 +30,7 @@ export const blogEngineConfigSchema = z.object({
     server: z.object({
         port: z.number().int().min(1).max(65535),
     }),
+    socials: socialLinksSchema,
 });
 
 export type BlogEngineConfig = z.infer<typeof blogEngineConfigSchema>;
@@ -28,6 +41,7 @@ export interface BlogEngineConfigInput {
     sync?: Partial<BlogEngineConfig['sync']>;
     database?: Partial<BlogEngineConfig['database']>;
     server?: Partial<BlogEngineConfig['server']>;
+    socials?: Partial<BlogEngineConfig['socials']>;
 }
 
 export const defaultBlogEngineConfig: Omit<BlogEngineConfig, 'notion'> = {
@@ -44,6 +58,7 @@ export const defaultBlogEngineConfig: Omit<BlogEngineConfig, 'notion'> = {
     server: {
         port: 3000,
     },
+    socials: {},
 };
 
 export function defineConfig(config: BlogEngineConfigInput): BlogEngineConfig {
@@ -64,6 +79,10 @@ export function defineConfig(config: BlogEngineConfigInput): BlogEngineConfig {
         server: {
             ...defaultBlogEngineConfig.server,
             ...config.server,
+        },
+        socials: {
+            ...defaultBlogEngineConfig.socials,
+            ...config.socials,
         },
     };
 

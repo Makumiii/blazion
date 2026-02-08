@@ -1,5 +1,6 @@
 import type { BlogPost, PostStatus } from '@blog-engine/shared';
 import { normalizeTags, slugify } from '@blog-engine/shared';
+import { createHash } from 'node:crypto';
 import { Client } from '@notionhq/client';
 import type {
     PageObjectResponse,
@@ -34,6 +35,49 @@ function readRichTextProperty(
         return '';
     }
     return prop.rich_text.map((item: any) => item.plain_text).join('').trim();
+}
+
+function readAuthorProperty(
+    result: QueryDatabaseResponse['results'][number],
+    key: string,
+): { name: string; email: string | null; avatarUrl: string | null } {
+    const page = result as Record<string, unknown>;
+    const properties = page.properties as Record<string, any> | undefined;
+    const prop = properties?.[key];
+    if (!prop) {
+        return { name: '', email: null, avatarUrl: null };
+    }
+
+    if (prop.type === 'people' && Array.isArray(prop.people)) {
+        const names = prop.people
+            .map((person: any) => person?.name ?? person?.person?.email ?? '')
+            .filter((name: string) => name.trim().length > 0)
+            .join(', ')
+            .trim();
+
+        const firstPerson = prop.people.find((person: any) => person && typeof person === 'object');
+        const email =
+            typeof firstPerson?.person?.email === 'string' ? firstPerson.person.email.trim() : null;
+        const avatarUrl =
+            typeof firstPerson?.avatar_url === 'string' ? firstPerson.avatar_url.trim() : null;
+
+        return {
+            name: names,
+            email: email && email.length > 0 ? email : null,
+            avatarUrl: avatarUrl && avatarUrl.length > 0 ? avatarUrl : null,
+        };
+    }
+
+    // Backward compatibility for existing databases that still use rich_text.
+    if (prop.type === 'rich_text') {
+        return {
+            name: prop.rich_text.map((item: any) => item.plain_text).join('').trim(),
+            email: null,
+            avatarUrl: null,
+        };
+    }
+
+    return { name: '', email: null, avatarUrl: null };
 }
 
 function readStatusProperty(
@@ -161,7 +205,7 @@ export class NotionService {
                 }
 
                 const summary = readRichTextProperty(result, 'Summary');
-                const author = readRichTextProperty(result, 'Author');
+                const authorInfo = readAuthorProperty(result, 'Author');
                 const tags = readTagsProperty(result, 'Tags');
                 const status = readStatusProperty(result, 'Status');
                 const publishedAt = readDateProperty(result, 'Published');
@@ -175,11 +219,15 @@ export class NotionService {
                     title,
                     slug,
                     summary: summary || null,
-                    author: author || null,
+                    author: authorInfo.name || null,
+                    authorEmail: authorInfo.email,
+                    authorAvatarUrl:
+                        authorInfo.avatarUrl ?? (authorInfo.email ? toGravatarUrl(authorInfo.email) : null),
                     tags,
                     status,
                     publishedAt,
                     bannerImageUrl,
+                    readTimeMinutes: null,
                     featured,
                     relatedPostIds,
                     isPublic: Boolean(result.public_url),
@@ -220,6 +268,24 @@ export class NotionService {
         }
 
         return blocks;
+    }
+
+    public async estimateReadTime(pageId: string, isPublic: boolean): Promise<number | null> {
+        try {
+            if (isPublic) {
+                const recordMap = await this.getRecordMap(pageId);
+                return wordsToMinutes(wordsFromRecordMap(recordMap));
+            }
+        } catch {
+            // Fall back to block API if recordMap is unavailable.
+        }
+
+        try {
+            const blocks = await this.getBlockContent(pageId);
+            return wordsToMinutes(wordsFromBlocks(blocks));
+        } catch {
+            return null;
+        }
     }
 
     private async withRetry<T>(fn: () => Promise<T>, maxAttempts = 4): Promise<T> {
@@ -278,4 +344,103 @@ function isRetryableNotionError(error: unknown): boolean {
         candidate.status === 503 ||
         candidate.status === 504
     );
+}
+
+function wordsToMinutes(words: number): number | null {
+    if (words <= 0) {
+        return null;
+    }
+    return Math.max(1, Math.ceil(words / 220));
+}
+
+function countWords(text: string): number {
+    if (!text) {
+        return 0;
+    }
+    return text
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean).length;
+}
+
+function wordsFromRichTextArray(entries: unknown): number {
+    if (!Array.isArray(entries)) {
+        return 0;
+    }
+
+    let total = 0;
+    for (const entry of entries) {
+        if (typeof entry === 'string') {
+            total += countWords(entry);
+            continue;
+        }
+        if (Array.isArray(entry) && typeof entry[0] === 'string') {
+            total += countWords(entry[0]);
+        }
+    }
+    return total;
+}
+
+function wordsFromRecordMap(recordMap: unknown): number {
+    const blockMap = (recordMap as { block?: Record<string, unknown> } | null)?.block;
+    if (!blockMap || typeof blockMap !== 'object') {
+        return 0;
+    }
+
+    let total = 0;
+    for (const blockEntry of Object.values(blockMap)) {
+        const properties = (blockEntry as { value?: { properties?: Record<string, unknown> } } | null)?.value
+            ?.properties;
+        if (!properties || typeof properties !== 'object') {
+            continue;
+        }
+
+        for (const value of Object.values(properties)) {
+            total += wordsFromRichTextArray(value);
+        }
+    }
+
+    return total;
+}
+
+function wordsFromBlocks(blocks: unknown[]): number {
+    let total = 0;
+
+    for (const block of blocks) {
+        if (!block || typeof block !== 'object') {
+            continue;
+        }
+        const typedBlock = block as Record<string, any>;
+        const blockType = typedBlock.type;
+        if (typeof blockType !== 'string') {
+            continue;
+        }
+        const payload = typedBlock[blockType];
+        if (!payload || typeof payload !== 'object') {
+            continue;
+        }
+
+        if (Array.isArray(payload.rich_text)) {
+            for (const rich of payload.rich_text) {
+                if (typeof rich?.plain_text === 'string') {
+                    total += countWords(rich.plain_text);
+                }
+            }
+        }
+
+        if (Array.isArray(payload.caption)) {
+            for (const rich of payload.caption) {
+                if (typeof rich?.plain_text === 'string') {
+                    total += countWords(rich.plain_text);
+                }
+            }
+        }
+    }
+
+    return total;
+}
+
+function toGravatarUrl(email: string): string {
+    const hash = createHash('md5').update(email.trim().toLowerCase()).digest('hex');
+    return `https://www.gravatar.com/avatar/${hash}?d=404&s=128`;
 }

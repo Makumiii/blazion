@@ -42,6 +42,7 @@ describe('shared package', () => {
         expect(config.sync.publicOnly).toBe(true);
         expect(config.server.port).toBe(3000);
         expect(config.database.path).toBe('./data/blog.db');
+        expect(config.socials).toEqual({});
     });
 
     test('slugify and formatDate produce stable values', () => {

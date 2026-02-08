@@ -48,7 +48,7 @@ async function main(): Promise<void> {
                 rich_text: {},
             },
             Author: {
-                rich_text: {},
+                people: {},
             },
             Tags: {
                 multi_select: {},

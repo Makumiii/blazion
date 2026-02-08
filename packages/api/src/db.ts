@@ -11,10 +11,13 @@ interface PostRow {
     slug: string;
     summary: string | null;
     author: string | null;
+    author_email: string | null;
+    author_avatar_url: string | null;
     tags_json: string;
     status: BlogPost['status'];
     published_at: string | null;
     banner_image_url: string | null;
+    read_time_minutes: number | null;
     featured: number;
     related_post_ids_json: string;
     is_public: number;
@@ -54,10 +57,13 @@ export class DatabaseService {
                 slug TEXT NOT NULL UNIQUE,
                 summary TEXT,
                 author TEXT,
+                author_email TEXT,
+                author_avatar_url TEXT,
                 tags_json TEXT NOT NULL,
                 status TEXT NOT NULL,
                 published_at TEXT,
                 banner_image_url TEXT,
+                read_time_minutes INTEGER,
                 featured INTEGER NOT NULL DEFAULT 0,
                 related_post_ids_json TEXT NOT NULL DEFAULT '[]',
                 is_public INTEGER NOT NULL DEFAULT 0,
@@ -80,6 +86,9 @@ export class DatabaseService {
 
         this.ensurePostColumn('featured', 'INTEGER NOT NULL DEFAULT 0');
         this.ensurePostColumn('related_post_ids_json', "TEXT NOT NULL DEFAULT '[]'");
+        this.ensurePostColumn('read_time_minutes', 'INTEGER');
+        this.ensurePostColumn('author_email', 'TEXT');
+        this.ensurePostColumn('author_avatar_url', 'TEXT');
     }
 
     public isConnected(): boolean {
@@ -91,11 +100,12 @@ export class DatabaseService {
         const statement = this.db.query(`
             INSERT INTO posts (
                 id, notion_page_id, title, slug, summary, author, tags_json, status,
-                published_at, banner_image_url, featured, related_post_ids_json, is_public,
+                author_email, author_avatar_url,
+                published_at, banner_image_url, read_time_minutes, featured, related_post_ids_json, is_public,
                 notion_url, created_at, updated_at
             ) VALUES (
                 ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
             )
             ON CONFLICT(notion_page_id) DO UPDATE SET
                 id = excluded.id,
@@ -103,10 +113,13 @@ export class DatabaseService {
                 slug = excluded.slug,
                 summary = excluded.summary,
                 author = excluded.author,
+                author_email = excluded.author_email,
+                author_avatar_url = excluded.author_avatar_url,
                 tags_json = excluded.tags_json,
                 status = excluded.status,
                 published_at = excluded.published_at,
                 banner_image_url = excluded.banner_image_url,
+                read_time_minutes = COALESCE(excluded.read_time_minutes, posts.read_time_minutes),
                 featured = excluded.featured,
                 related_post_ids_json = excluded.related_post_ids_json,
                 is_public = excluded.is_public,
@@ -123,8 +136,11 @@ export class DatabaseService {
             post.author,
             JSON.stringify(post.tags),
             post.status,
+            post.authorEmail,
+            post.authorAvatarUrl,
             post.publishedAt,
             post.bannerImageUrl,
+            post.readTimeMinutes,
             post.featured ? 1 : 0,
             JSON.stringify(post.relatedPostIds),
             post.isPublic ? 1 : 0,
@@ -214,10 +230,13 @@ function mapRowToPost(row: PostRow): StoredPost {
         slug: row.slug,
         summary: row.summary,
         author: row.author,
+        authorEmail: row.author_email,
+        authorAvatarUrl: row.author_avatar_url,
         tags: safeParseStringArray(row.tags_json),
         status: row.status,
         publishedAt: row.published_at,
         bannerImageUrl: row.banner_image_url,
+        readTimeMinutes: row.read_time_minutes,
         featured: row.featured === 1,
         relatedPostIds: safeParseStringArray(row.related_post_ids_json),
         isPublic: row.is_public === 1,

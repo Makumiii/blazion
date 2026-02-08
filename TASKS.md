@@ -154,10 +154,10 @@ curl http://localhost:3000/api/posts/my-test-slug/content
 
 ### Deliverables
 - [x] Next.js 14 with App Router
-- [ ] Shadcn UI components installed
+- [x] Lightweight custom UI components (no heavyweight UI kit required)
 - [x] Design system implemented (colors, typography)
 - [x] Dark/light mode toggle
-- [ ] Home page with featured posts (SSG)
+- [x] Home page with featured posts (dynamic SSR)
 - [x] Posts list page with pagination (SSR)
 - [x] Single post page with react-notion-x (SSR/ISR)
 - [x] Tag filter page (SSR)

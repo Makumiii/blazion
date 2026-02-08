@@ -4,14 +4,21 @@ function apiBaseUrl() {
 
 async function safeJson(url, options) {
     const controller = new AbortController();
-    const timeoutMs = 2500;
+    const timeoutMs = options?.timeoutMs ?? 2500;
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const fetchOptions = {
+        next: options?.revalidate ? { revalidate: options.revalidate } : undefined,
+        signal: controller.signal,
+    };
+
+    if (!options?.revalidate) {
+        fetchOptions.cache = options?.cache ?? 'no-store';
+    } else if (options?.cache) {
+        fetchOptions.cache = options.cache;
+    }
+
     try {
-        const response = await fetch(url, {
-            cache: options?.cache ?? 'no-store',
-            next: options?.revalidate ? { revalidate: options.revalidate } : undefined,
-            signal: controller.signal,
-        });
+        const response = await fetch(url, fetchOptions);
         clearTimeout(timeout);
         if (!response.ok) {
             return null;
@@ -53,5 +60,13 @@ export async function fetchPost(slug, options) {
 
 export async function fetchPostContent(slug, options) {
     const url = `${apiBaseUrl()}/api/posts/${encodeURIComponent(slug)}/content`;
-    return safeJson(url, options);
+    return safeJson(url, { ...options, timeoutMs: 10000 });
+}
+
+export async function fetchSiteSettings(options) {
+    const url = `${apiBaseUrl()}/api/site`;
+    const data = await safeJson(url, options);
+    return {
+        socials: data?.data?.socials ?? {},
+    };
 }
