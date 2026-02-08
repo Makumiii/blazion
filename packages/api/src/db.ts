@@ -4,6 +4,36 @@ import path from 'node:path';
 import type { BlogPost } from '@blog-engine/shared';
 import { Database } from 'bun:sqlite';
 
+interface PostRow {
+    id: string;
+    notion_page_id: string;
+    title: string;
+    slug: string;
+    summary: string | null;
+    author: string | null;
+    tags_json: string;
+    status: BlogPost['status'];
+    published_at: string | null;
+    banner_image_url: string | null;
+    featured: number;
+    related_post_ids_json: string;
+    is_public: number;
+    notion_url: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface StoredPost extends BlogPost {
+    notionUrl: string;
+}
+
+export interface ListPostsOptions {
+    page: number;
+    limit: number;
+    tags: string[];
+    author?: string;
+}
+
 export class DatabaseService {
     private readonly db: Database;
 
@@ -113,6 +143,60 @@ export class DatabaseService {
         );
     }
 
+    public listReadyPosts(options: ListPostsOptions): { data: StoredPost[]; total: number } {
+        const where: string[] = ['status = ?'];
+        const params: Array<string | number> = ['ready'];
+
+        if (options.author && options.author.trim()) {
+            where.push('LOWER(COALESCE(author, \'\')) = ?');
+            params.push(options.author.trim().toLowerCase());
+        }
+
+        if (options.tags.length > 0) {
+            const placeholders = options.tags.map(() => '?').join(', ');
+            where.push(
+                `EXISTS (
+                    SELECT 1
+                    FROM json_each(posts.tags_json)
+                    WHERE LOWER(json_each.value) IN (${placeholders})
+                )`,
+            );
+            for (const tag of options.tags) {
+                params.push(tag.toLowerCase());
+            }
+        }
+
+        const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+        const totalRow = this.db
+            .query(`SELECT COUNT(*) as count FROM posts ${whereClause}`)
+            .get(...params) as { count: number } | null;
+        const total = totalRow?.count ?? 0;
+
+        const offset = (options.page - 1) * options.limit;
+        const rows = this.db
+            .query(
+                `SELECT * FROM posts ${whereClause}
+                 ORDER BY COALESCE(published_at, created_at) DESC, created_at DESC
+                 LIMIT ? OFFSET ?`,
+            )
+            .all(...params, options.limit, offset) as PostRow[];
+
+        return {
+            data: rows.map(mapRowToPost),
+            total,
+        };
+    }
+
+    public getReadyPostBySlug(slug: string): StoredPost | null {
+        const row = this.db
+            .query('SELECT * FROM posts WHERE slug = ? AND status = ? LIMIT 1')
+            .get(slug, 'ready') as PostRow | null;
+        if (!row) {
+            return null;
+        }
+        return mapRowToPost(row);
+    }
+
     private ensurePostColumn(columnName: string, definition: string): void {
         const columns = this.db.query('PRAGMA table_info(posts)').all() as Array<{ name: string }>;
         const hasColumn = columns.some((column) => column.name === columnName);
@@ -120,4 +204,35 @@ export class DatabaseService {
             this.db.exec(`ALTER TABLE posts ADD COLUMN ${columnName} ${definition}`);
         }
     }
+}
+
+function mapRowToPost(row: PostRow): StoredPost {
+    return {
+        id: row.id,
+        notionPageId: row.notion_page_id,
+        title: row.title,
+        slug: row.slug,
+        summary: row.summary,
+        author: row.author,
+        tags: safeParseStringArray(row.tags_json),
+        status: row.status,
+        publishedAt: row.published_at,
+        bannerImageUrl: row.banner_image_url,
+        featured: row.featured === 1,
+        relatedPostIds: safeParseStringArray(row.related_post_ids_json),
+        isPublic: row.is_public === 1,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        notionUrl: row.notion_url,
+    };
+}
+
+function safeParseStringArray(value: string): string[] {
+    try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) {
+            return parsed.filter((entry): entry is string => typeof entry === 'string');
+        }
+    } catch {}
+    return [];
 }

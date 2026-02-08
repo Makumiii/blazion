@@ -97,10 +97,10 @@ curl -X POST http://localhost:3000/api/sync
 ```
 
 ### Success Criteria
-- [ ] Notion database created via CLI with correct schema
+- [x] Notion database created via CLI with correct schema
 - [x] SQLite database file created at configured path
 - [x] Server responds to health check
-- [ ] Sync fetches pages from Notion (even if 0 posts)
+- [x] Sync fetches pages from Notion (even if 0 posts)
 
 ---
 
@@ -108,13 +108,13 @@ curl -X POST http://localhost:3000/api/sync
 **Goal:** Complete REST API with automatic syncing
 
 ### Deliverables
-- [ ] `GET /api/posts` - List posts with pagination
-- [ ] `GET /api/posts?tags=x&author=y` - Filtering
-- [ ] `GET /api/posts/:slug` - Single post metadata
-- [ ] `GET /api/posts/:slug/content` - RecordMap for rendering
-- [ ] Cron job: Sync at configured interval
-- [ ] Cron job: Image URL refresh (hourly)
-- [ ] Public/private page detection
+- [x] `GET /api/posts` - List posts with pagination
+- [x] `GET /api/posts?tags=x&author=y` - Filtering
+- [x] `GET /api/posts/:slug` - Single post metadata
+- [x] `GET /api/posts/:slug/content` - RecordMap for rendering
+- [x] Cron job: Sync at configured interval
+- [x] Cron job: Image URL refresh (hourly)
+- [x] Public/private page detection
 
 ### Verification
 ```bash
@@ -142,10 +142,10 @@ curl http://localhost:3000/api/posts/my-test-slug/content
 
 ### Success Criteria
 - [ ] Posts appear in API after sync
-- [ ] Pagination works (test with limit=1)
+- [x] Pagination works (test with limit=1)
 - [ ] Tag filtering returns correct subset
 - [ ] RecordMap is valid (can be parsed as JSON)
-- [ ] Cron logs show scheduled jobs
+- [x] Cron logs show scheduled jobs
 
 ---
 
