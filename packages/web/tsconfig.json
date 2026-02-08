@@ -10,6 +10,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "noEmit": true,
+    "noImplicitAny": false,
     "incremental": true,
     "plugins": [
       {

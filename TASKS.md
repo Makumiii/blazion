@@ -68,12 +68,12 @@ pnpm --filter @blog-engine/shared build  # Compiles
 **Goal:** Working API that can fetch and store Notion data
 
 ### Deliverables
-- [ ] Hono.js server running on Bun
-- [ ] Notion client wrapper (official + unofficial)
-- [ ] SQLite database with migrations
-- [ ] CLI setup command (`pnpm run setup --page-id=xxx`)
-- [ ] Basic sync service (Notion → SQLite)
-- [ ] Health endpoint (`GET /api/health`)
+- [x] Hono.js server running on Bun
+- [x] Notion client wrapper (official + unofficial)
+- [x] SQLite database with migrations
+- [x] CLI setup command (`pnpm run setup --page-id=xxx`)
+- [x] Basic sync service (Notion → SQLite)
+- [x] Health endpoint (`GET /api/health`)
 
 ### Verification
 ```bash
@@ -92,12 +92,14 @@ curl http://localhost:3000/api/health
 # 4. Manual sync test
 curl -X POST http://localhost:3000/api/sync
 # Expected: {"synced":0,"skipped":0,"errors":0}
+
+# Note: Steps 1 and 4 require valid NOTION_API_KEY + NOTION_DATABASE_ID.
 ```
 
 ### Success Criteria
 - [ ] Notion database created via CLI with correct schema
-- [ ] SQLite database file created at configured path
-- [ ] Server responds to health check
+- [x] SQLite database file created at configured path
+- [x] Server responds to health check
 - [ ] Sync fetches pages from Notion (even if 0 posts)
 
 ---
