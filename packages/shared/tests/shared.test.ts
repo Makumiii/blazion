@@ -19,6 +19,7 @@ describe('shared package', () => {
                 summary: null,
                 author: null,
                 tags: [],
+                segment: null,
                 status: 'ready',
                 publishedAt: null,
                 bannerImageUrl: null,

@@ -7,6 +7,7 @@ export interface SyncResult {
     synced: number;
     skipped: number;
     errors: number;
+    removed: number;
 }
 
 export class SyncService {
@@ -37,16 +38,26 @@ export class SyncService {
             synced: 0,
             skipped: 0,
             errors: 0,
+            removed: 0,
         };
 
+        await this.notion.assertMinimumDatabaseSchema(this.config.notion.databaseId);
         const posts = await this.notion.getDatabasePosts(this.config.notion.databaseId);
+        const desiredNotionPageIds: string[] = [];
 
         for (const post of posts) {
             try {
+                if (post.status !== 'ready') {
+                    result.skipped += 1;
+                    continue;
+                }
+
                 if (this.config.sync.publicOnly && !post.isPublic) {
                     result.skipped += 1;
                     continue;
                 }
+
+                desiredNotionPageIds.push(post.notionPageId);
 
                 if (input.refreshOnly && !post.bannerImageUrl) {
                     result.skipped += 1;
@@ -68,6 +79,7 @@ export class SyncService {
             }
         }
 
+        result.removed = this.db.deletePostsNotInNotionIds(desiredNotionPageIds);
         this.db.recordSyncRun(result);
         return result;
     }

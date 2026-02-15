@@ -38,8 +38,16 @@ export async function fetchPosts(input, options) {
     const params = new URLSearchParams();
     if (input.page) params.set('page', String(input.page));
     if (input.limit) params.set('limit', String(input.limit));
+    if (input.q) params.set('q', input.q);
+    if (input.dateFrom) params.set('dateFrom', input.dateFrom);
+    if (input.dateTo) params.set('dateTo', input.dateTo);
     if (input.tags) params.set('tags', input.tags);
     if (input.author) params.set('author', input.author);
+    if (input.authors) params.set('authors', input.authors);
+    if (input.segment) params.set('segment', input.segment);
+    if (input.segments) params.set('segments', input.segments);
+    if (input.featured) params.set('featured', String(input.featured));
+    if (input.sort) params.set('sort', input.sort);
 
     const url = `${apiBaseUrl()}/api/posts?${params.toString()}`;
     const data = await safeJson(url, options);
@@ -52,6 +60,20 @@ export async function fetchPosts(input, options) {
             limit: input.limit ?? 10,
             total: 0,
             totalPages: 0,
+        },
+        facets: {
+            authors: [],
+            segments: [],
+        },
+        appliedFilters: {
+            q: input.q ?? '',
+            dateFrom: input.dateFrom ?? '',
+            dateTo: input.dateTo ?? '',
+            tags: [],
+            authors: [],
+            segments: [],
+            featuredOnly: false,
+            sort: input.sort ?? 'newest',
         },
     };
 }
@@ -67,10 +89,34 @@ export async function fetchPostContent(slug, options) {
     return safeJson(url, { ...options, timeoutMs: 10000 });
 }
 
+export async function fetchPostRecommendations(slug, input, options) {
+    const params = new URLSearchParams();
+    if (input?.limit) {
+        params.set('limit', String(input.limit));
+    }
+
+    const query = params.toString();
+    const url = `${apiBaseUrl()}/api/posts/${encodeURIComponent(slug)}/recommendations${query ? `?${query}` : ''}`;
+    const data = await safeJson(url, options);
+    if (data) {
+        return data;
+    }
+
+    return {
+        data: [],
+        strategy: 'latest',
+    };
+}
+
 export async function fetchSiteSettings(options) {
     const url = `${apiBaseUrl()}/api/site`;
     const data = await safeJson(url, options);
     return {
         socials: data?.data?.socials ?? {},
+        site: {
+            homeHeader:
+                data?.data?.site?.homeHeader ??
+                'Stories from your Notion publication',
+        },
     };
 }

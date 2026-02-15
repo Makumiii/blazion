@@ -3,6 +3,7 @@ import { normalizeTags, slugify } from '@blazion/shared';
 import { createHash } from 'node:crypto';
 import { Client } from '@notionhq/client';
 import type {
+    DatabaseObjectResponse,
     PageObjectResponse,
     PartialPageObjectResponse,
     QueryDatabaseParameters,
@@ -108,6 +109,30 @@ function readTagsProperty(result: QueryDatabaseResponse['results'][number], key:
     );
 }
 
+function readSegmentProperty(
+    result: QueryDatabaseResponse['results'][number],
+    key: string,
+): string | null {
+    const page = result as Record<string, unknown>;
+    const properties = page.properties as Record<string, any> | undefined;
+    const prop = properties?.[key];
+    if (!prop) {
+        return null;
+    }
+
+    if (prop.type === 'select') {
+        const name = typeof prop.select?.name === 'string' ? prop.select.name.trim() : '';
+        return name.length > 0 ? name : null;
+    }
+
+    if (prop.type === 'rich_text') {
+        const value = prop.rich_text.map((item: any) => item.plain_text).join('').trim();
+        return value.length > 0 ? value : null;
+    }
+
+    return null;
+}
+
 function readDateProperty(
     result: QueryDatabaseResponse['results'][number],
     key: string,
@@ -179,6 +204,56 @@ export class NotionService {
         this.notionApi = new NotionAPI();
     }
 
+    public async assertMinimumDatabaseSchema(databaseId: string): Promise<void> {
+        const response = await this.withRetry(() =>
+            this.client.databases.retrieve({ database_id: databaseId }),
+        );
+
+        if (!isDatabaseObjectResponse(response)) {
+            throw new Error('Notion database schema check failed: database response is invalid.');
+        }
+
+        const required: Array<{ name: string; type: string }> = [
+            { name: 'Title', type: 'title' },
+            { name: 'Slug', type: 'rich_text' },
+            { name: 'Status', type: 'select' },
+        ];
+
+        const errors: string[] = [];
+        for (const item of required) {
+            const property = response.properties?.[item.name];
+            if (!property) {
+                errors.push(`Missing property "${item.name}"`);
+                continue;
+            }
+            if (property.type !== item.type) {
+                errors.push(
+                    `Property "${item.name}" must be type "${item.type}" (found "${property.type}")`,
+                );
+            }
+        }
+
+        const status = response.properties?.Status;
+        if (status?.type === 'select') {
+            const names = new Set(
+                (status.select?.options ?? [])
+                    .map((option) => option?.name?.trim())
+                    .filter((value): value is string => Boolean(value)),
+            );
+            for (const expected of ['draft', 'pending', 'ready']) {
+                if (!names.has(expected)) {
+                    errors.push(`Status option "${expected}" is missing`);
+                }
+            }
+        }
+
+        if (errors.length > 0) {
+            throw new Error(
+                `Notion database schema does not match minimum viable shape: ${errors.join('; ')}`,
+            );
+        }
+    }
+
     public async getDatabasePosts(databaseId: string): Promise<NotionPost[]> {
         const posts: NotionPost[] = [];
         let cursor: string | undefined;
@@ -207,6 +282,7 @@ export class NotionService {
                 const summary = readRichTextProperty(result, 'Summary');
                 const authorInfo = readAuthorProperty(result, 'Author');
                 const tags = readTagsProperty(result, 'Tags');
+                const segment = readSegmentProperty(result, 'Segment');
                 const status = readStatusProperty(result, 'Status');
                 const publishedAt = readDateProperty(result, 'Published');
                 const bannerImageUrl = readFileUrlProperty(result, 'Banner');
@@ -224,6 +300,7 @@ export class NotionService {
                     authorAvatarUrl:
                         authorInfo.avatarUrl ?? (authorInfo.email ? toGravatarUrl(authorInfo.email) : null),
                     tags,
+                    segment,
                     status,
                     publishedAt,
                     bannerImageUrl,
@@ -318,6 +395,14 @@ function isPageObjectResponse(
         'last_edited_time' in result &&
         !isPartialPageObjectResponse(result)
     );
+}
+
+function isDatabaseObjectResponse(value: unknown): value is DatabaseObjectResponse {
+    if (typeof value !== 'object' || value === null) {
+        return false;
+    }
+    const candidate = value as { object?: string; properties?: unknown };
+    return candidate.object === 'database' && typeof candidate.properties === 'object';
 }
 
 function isPartialPageObjectResponse(result: unknown): result is PartialPageObjectResponse {

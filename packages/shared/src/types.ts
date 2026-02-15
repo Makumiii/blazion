@@ -13,6 +13,7 @@ export const blogPostSchema = z.object({
     authorEmail: z.string().nullable().default(null),
     authorAvatarUrl: z.string().nullable().default(null),
     tags: z.array(z.string()).default([]),
+    segment: z.string().nullable().default(null),
     status: postStatusSchema,
     publishedAt: z.string().datetime().nullable(),
     bannerImageUrl: z.string().url().nullable(),
@@ -37,8 +38,16 @@ export type Pagination = z.infer<typeof paginationSchema>;
 export const postsQuerySchema = z.object({
     page: z.coerce.number().int().positive().default(1),
     limit: z.coerce.number().int().positive().max(100).default(10),
+    q: z.string().optional(),
+    dateFrom: z.string().optional(),
+    dateTo: z.string().optional(),
     tags: z.string().optional(),
     author: z.string().optional(),
+    authors: z.string().optional(),
+    segment: z.string().optional(),
+    segments: z.string().optional(),
+    featured: z.string().optional(),
+    sort: z.enum(['newest', 'oldest']).default('newest'),
 });
 export type PostsQuery = z.infer<typeof postsQuerySchema>;
 
@@ -58,6 +67,12 @@ export const postContentResponseSchema = z.object({
     renderMode: z.enum(['recordMap', 'blocks']),
 });
 export type PostContentResponse = z.infer<typeof postContentResponseSchema>;
+
+export const recommendationsResponseSchema = z.object({
+    data: z.array(blogPostSchema),
+    strategy: z.enum(['related_ids', 'tags', 'segment', 'featured', 'latest']),
+});
+export type RecommendationsResponse = z.infer<typeof recommendationsResponseSchema>;
 
 export const apiErrorResponseSchema = z.object({
     error: z.string(),

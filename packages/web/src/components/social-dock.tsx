@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import type { ReactElement } from 'react';
 
 const ORDER = [
     'linkedin',
     'x',
+    'whatsapp',
     'instagram',
     'linktree',
     'linkedtree',
@@ -23,25 +24,9 @@ type SocialItem = {
     key: SocialKey;
     label: string;
     href: string;
-    external: boolean;
 };
 
-function ensureUrl(value: string): string {
-    if (value.startsWith('http://') || value.startsWith('https://')) {
-        return value;
-    }
-    return `https://${value}`;
-}
-
-function toHref(key: SocialKey, raw: string): string {
-    if (key === 'email') {
-        return raw.startsWith('mailto:') ? raw : `mailto:${raw}`;
-    }
-    if (key === 'phonenumber') {
-        return raw.startsWith('tel:') ? raw : `tel:${raw}`;
-    }
-    return ensureUrl(raw);
-}
+const SHARE_KEYS: SocialKey[] = ['linkedin', 'x', 'facebook', 'whatsapp'];
 
 function labelFor(key: SocialKey): string {
     switch (key) {
@@ -83,6 +68,15 @@ function iconFor(key: SocialKey): ReactElement {
                     <path
                         fill="currentColor"
                         d="M7.8 3h8.4A4.8 4.8 0 0 1 21 7.8v8.4a4.8 4.8 0 0 1-4.8 4.8H7.8A4.8 4.8 0 0 1 3 16.2V7.8A4.8 4.8 0 0 1 7.8 3Zm0 1.8A3 3 0 0 0 4.8 7.8v8.4a3 3 0 0 0 3 3h8.4a3 3 0 0 0 3-3V7.8a3 3 0 0 0-3-3H7.8Zm9 1.5a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4ZM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 1.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4Z"
+                    />
+                </svg>
+            );
+        case 'whatsapp':
+            return (
+                <svg viewBox="0 0 24 24" className="social-dock-svg" aria-hidden="true">
+                    <path
+                        fill="currentColor"
+                        d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.7-1.2A9 9 0 1 0 12 3Zm5.3 12.7c-.2.6-1.2 1.1-1.7 1.2-.5 0-1 .2-3.2-.7-2.7-1.2-4.4-4-4.5-4.2-.1-.2-1.1-1.4-1.1-2.7 0-1.3.7-1.9 1-2.2.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5.2.6.8 1.9.8 2.1.1.2.1.4 0 .6-.1.2-.2.3-.4.5-.2.2-.3.4-.5.5-.2.2-.3.4-.1.8.2.3 1 1.7 2.2 2.7 1.5 1.3 2.7 1.7 3.1 1.9.4.2.6.1.8-.1.3-.3 1-1.1 1.2-1.4.2-.3.5-.3.8-.2.3.1 2 .9 2.3 1.1.3.1.5.2.6.4.1.3.1.8-.1 1.4Z"
                     />
                 </svg>
             );
@@ -141,68 +135,112 @@ function iconFor(key: SocialKey): ReactElement {
     }
 }
 
-export function SocialDock({ socials }: { socials: Socials }) {
+export function SocialDock({ socials: _socials }: { socials: Socials }) {
     const [collapsed, setCollapsed] = useState(false);
+    const [copied, setCopied] = useState(false);
+    const [currentUrl, setCurrentUrl] = useState('');
     const pathname = usePathname();
 
-    const links = useMemo<SocialItem[]>(() => {
-        const seen = new Set<string>();
-        return ORDER.flatMap((key) => {
-            const raw = typeof socials?.[key] === 'string' ? socials[key]!.trim() : '';
-            if (!raw) {
-                return [];
-            }
-            const label = labelFor(key);
-            if (seen.has(label)) {
-                return [];
-            }
-            seen.add(label);
-            return [
-                {
-                    key,
-                    label,
-                    href: toHref(key, raw),
-                    external: key !== 'email' && key !== 'phonenumber',
-                },
-            ];
-        });
-    }, [socials]);
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+        setCurrentUrl(window.location.href);
+    }, [pathname]);
 
-    if (links.length === 0) {
-        return null;
-    }
+    const shareLinks = useMemo<SocialItem[]>(() => {
+        if (!currentUrl) {
+            return [];
+        }
+
+        const encodedUrl = encodeURIComponent(currentUrl);
+        const encodedText = encodeURIComponent('Check out this post');
+        return SHARE_KEYS.flatMap((key) => {
+            let href = '';
+            if (key === 'x') {
+                href = `https://x.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`;
+            } else if (key === 'whatsapp') {
+                href = `https://wa.me/?text=${encodeURIComponent(`Check out this post ${currentUrl}`)}`;
+            } else if (key === 'linkedin') {
+                href = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+            } else if (key === 'facebook') {
+                href = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+            } else {
+                return [];
+            }
+            return [{ key, label: labelFor(key), href }];
+        });
+    }, [currentUrl]);
 
     const isPostDetail = /^\/posts\/[^/]+\/?$/.test(pathname ?? '');
     if (!isPostDetail) {
         return null;
     }
 
+    const canCopy = currentUrl.length > 0;
+    if (shareLinks.length === 0 && !canCopy) {
+        return null;
+    }
+
+    async function copyCurrentUrl(): Promise<void> {
+        if (!currentUrl) {
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(currentUrl);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1200);
+        } catch {
+            setCopied(false);
+        }
+    }
+
     return (
-        <aside className={`social-dock ${collapsed ? 'is-collapsed' : ''}`} aria-label="Social links">
+        <aside className={`social-dock ${collapsed ? 'is-collapsed' : ''}`} aria-label="Share this post">
+            <p className="social-dock-title" aria-hidden="true">
+                Share
+            </p>
             <button
                 type="button"
                 className="social-dock-toggle"
                 onClick={() => setCollapsed((value) => !value)}
-                aria-label={collapsed ? 'Show social links' : 'Hide social links'}
+                aria-label={collapsed ? 'Show share actions' : 'Hide share actions'}
             >
                 {collapsed ? '‹' : '›'}
             </button>
 
             <div className="social-dock-panel" aria-hidden={collapsed}>
-                {links.map((item) => (
+                {shareLinks.map((item) => (
                     <a
                         key={item.key}
                         href={item.href}
                         className="social-dock-link"
-                        target={item.external ? '_blank' : undefined}
-                        rel={item.external ? 'noreferrer noopener' : undefined}
+                        target="_blank"
+                        rel="noreferrer noopener"
                         aria-label={item.label}
-                        title={item.label}
+                        title={`Share on ${item.label}`}
                     >
                         <span className="social-dock-icon">{iconFor(item.key)}</span>
                         <span className="social-dock-text">{item.label}</span>
                     </a>
                 ))}
+                <button
+                    type="button"
+                    className={`social-dock-link${copied ? ' is-success' : ''}`}
+                    onClick={copyCurrentUrl}
+                    aria-label="Copy post URL"
+                    title={copied ? 'Copied' : 'Copy link'}
+                >
+                    <span className="social-dock-icon">
+                        <svg viewBox="0 0 24 24" className="social-dock-svg" aria-hidden="true">
+                            <path
+                                fill="currentColor"
+                                d="M9 8V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2v-2h2V6h-7v2H9Zm-5 3a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9Zm2 0v9h7v-9H6Z"
+                            />
+                        </svg>
+                    </span>
+                    <span className="social-dock-text">{copied ? 'Copied' : 'Copy link'}</span>
+                </button>
             </div>
         </aside>
     );

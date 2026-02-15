@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { formatAuthorDisplayName } from '../lib/author';
 
 function initialsFromName(name) {
     if (!name) {
@@ -21,19 +22,45 @@ function initialsFromName(name) {
 
 export function AuthorAvatar({ name, avatarUrl }) {
     const [failed, setFailed] = useState(false);
-    const initials = useMemo(() => initialsFromName(name), [name]);
+    const imgRef = useRef<HTMLImageElement | null>(null);
+    const displayName = useMemo(() => formatAuthorDisplayName(name), [name]);
+    const initials = useMemo(() => initialsFromName(displayName), [displayName]);
     const showImage = Boolean(avatarUrl) && !failed;
+
+    useEffect(() => {
+        setFailed(false);
+    }, [avatarUrl]);
+
+    useEffect(() => {
+        const img = imgRef.current;
+        if (!img) {
+            return;
+        }
+
+        // If the image failed before hydration, the onError event is already gone.
+        // Inspect DOM image state so we still fall back to initials.
+        if (img.complete && img.naturalWidth === 0) {
+            setFailed(true);
+        }
+    }, [avatarUrl]);
 
     return (
         <span className="author-chip">
             <span className="author-avatar" aria-hidden="true">
                 {showImage ? (
-                    <img src={avatarUrl} alt="" onError={() => setFailed(true)} className="author-avatar-image" />
+                    <img
+                        ref={imgRef}
+                        src={avatarUrl}
+                        alt=""
+                        onError={() => setFailed(true)}
+                        onLoad={() => setFailed(false)}
+                        className="author-avatar-image"
+                    />
                 ) : (
                     <span className="author-avatar-fallback">{initials}</span>
                 )}
             </span>
-            <span className="author-name">{name || 'Unknown author'}</span>
+            <span className="author-name">{displayName || 'Unknown author'}</span>
         </span>
     );
 }

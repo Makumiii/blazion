@@ -53,6 +53,15 @@ async function main(): Promise<void> {
             Tags: {
                 multi_select: {},
             },
+            Segment: {
+                select: {
+                    options: [
+                        { name: 'engineering', color: 'blue' },
+                        { name: 'product', color: 'purple' },
+                        { name: 'career', color: 'orange' },
+                    ],
+                },
+            },
             Status: {
                 select: {
                     options: [

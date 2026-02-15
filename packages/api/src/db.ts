@@ -14,6 +14,7 @@ interface PostRow {
     author_email: string | null;
     author_avatar_url: string | null;
     tags_json: string;
+    segment: string | null;
     status: BlogPost['status'];
     published_at: string | null;
     banner_image_url: string | null;
@@ -33,8 +34,19 @@ export interface StoredPost extends BlogPost {
 export interface ListPostsOptions {
     page: number;
     limit: number;
+    q: string;
+    dateFrom: string;
+    dateTo: string;
     tags: string[];
-    author?: string;
+    authors: string[];
+    segments: string[];
+    featuredOnly: boolean;
+    sort: 'newest' | 'oldest';
+}
+
+export interface PostFacets {
+    authors: Array<{ value: string; count: number }>;
+    segments: Array<{ value: string; count: number }>;
 }
 
 export class DatabaseService {
@@ -60,6 +72,7 @@ export class DatabaseService {
                 author_email TEXT,
                 author_avatar_url TEXT,
                 tags_json TEXT NOT NULL,
+                segment TEXT,
                 status TEXT NOT NULL,
                 published_at TEXT,
                 banner_image_url TEXT,
@@ -80,6 +93,7 @@ export class DatabaseService {
                 synced INTEGER NOT NULL,
                 skipped INTEGER NOT NULL,
                 errors INTEGER NOT NULL,
+                removed INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL
             );
         `);
@@ -89,6 +103,8 @@ export class DatabaseService {
         this.ensurePostColumn('read_time_minutes', 'INTEGER');
         this.ensurePostColumn('author_email', 'TEXT');
         this.ensurePostColumn('author_avatar_url', 'TEXT');
+        this.ensurePostColumn('segment', 'TEXT');
+        this.ensureSyncRunColumn('removed', 'INTEGER NOT NULL DEFAULT 0');
     }
 
     public isConnected(): boolean {
@@ -100,12 +116,12 @@ export class DatabaseService {
         const statement = this.db.query(`
             INSERT INTO posts (
                 id, notion_page_id, title, slug, summary, author, tags_json, status,
-                author_email, author_avatar_url,
+                author_email, author_avatar_url, segment,
                 published_at, banner_image_url, read_time_minutes, featured, related_post_ids_json, is_public,
                 notion_url, created_at, updated_at
             ) VALUES (
                 ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
             )
             ON CONFLICT(notion_page_id) DO UPDATE SET
                 id = excluded.id,
@@ -116,6 +132,7 @@ export class DatabaseService {
                 author_email = excluded.author_email,
                 author_avatar_url = excluded.author_avatar_url,
                 tags_json = excluded.tags_json,
+                segment = excluded.segment,
                 status = excluded.status,
                 published_at = excluded.published_at,
                 banner_image_url = excluded.banner_image_url,
@@ -138,6 +155,7 @@ export class DatabaseService {
             post.status,
             post.authorEmail,
             post.authorAvatarUrl,
+            post.segment,
             post.publishedAt,
             post.bannerImageUrl,
             post.readTimeMinutes,
@@ -150,22 +168,44 @@ export class DatabaseService {
         );
     }
 
-    public recordSyncRun(input: { synced: number; skipped: number; errors: number }): void {
-        this.db.query('INSERT INTO sync_runs (synced, skipped, errors, created_at) VALUES (?, ?, ?, ?)').run(
+    public recordSyncRun(input: { synced: number; skipped: number; errors: number; removed?: number }): void {
+        this.db
+            .query('INSERT INTO sync_runs (synced, skipped, errors, removed, created_at) VALUES (?, ?, ?, ?, ?)')
+            .run(
             input.synced,
             input.skipped,
             input.errors,
+            input.removed ?? 0,
             new Date().toISOString(),
-        );
+            );
     }
 
-    public listReadyPosts(options: ListPostsOptions): { data: StoredPost[]; total: number } {
+    public listReadyPosts(options: ListPostsOptions): { data: StoredPost[]; total: number; facets: PostFacets } {
         const where: string[] = ['status = ?'];
         const params: Array<string | number> = ['ready'];
 
-        if (options.author && options.author.trim()) {
-            where.push('LOWER(COALESCE(author, \'\')) = ?');
-            params.push(options.author.trim().toLowerCase());
+        if (options.q.length > 0) {
+            where.push('(LOWER(title) LIKE ? OR LOWER(COALESCE(summary, \'\')) LIKE ?)');
+            const pattern = `%${options.q.toLowerCase()}%`;
+            params.push(pattern, pattern);
+        }
+
+        if (options.dateFrom.length > 0) {
+            where.push('COALESCE(published_at, created_at) >= ?');
+            params.push(options.dateFrom);
+        }
+
+        if (options.dateTo.length > 0) {
+            where.push('COALESCE(published_at, created_at) <= ?');
+            params.push(options.dateTo);
+        }
+
+        if (options.authors.length > 0) {
+            const placeholders = options.authors.map(() => '?').join(', ');
+            where.push(`LOWER(COALESCE(author, '')) IN (${placeholders})`);
+            for (const author of options.authors) {
+                params.push(author.toLowerCase());
+            }
         }
 
         if (options.tags.length > 0) {
@@ -182,6 +222,18 @@ export class DatabaseService {
             }
         }
 
+        if (options.segments.length > 0) {
+            const placeholders = options.segments.map(() => '?').join(', ');
+            where.push(`LOWER(COALESCE(segment, '')) IN (${placeholders})`);
+            for (const segment of options.segments) {
+                params.push(segment.toLowerCase());
+            }
+        }
+
+        if (options.featuredOnly) {
+            where.push('featured = 1');
+        }
+
         const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
         const totalRow = this.db
             .query(`SELECT COUNT(*) as count FROM posts ${whereClause}`)
@@ -189,10 +241,11 @@ export class DatabaseService {
         const total = totalRow?.count ?? 0;
 
         const offset = (options.page - 1) * options.limit;
+        const sortDirection = options.sort === 'oldest' ? 'ASC' : 'DESC';
         const rows = this.db
             .query(
                 `SELECT * FROM posts ${whereClause}
-                 ORDER BY COALESCE(published_at, created_at) DESC, created_at DESC
+                 ORDER BY COALESCE(published_at, created_at) ${sortDirection}, created_at ${sortDirection}
                  LIMIT ? OFFSET ?`,
             )
             .all(...params, options.limit, offset) as PostRow[];
@@ -200,6 +253,7 @@ export class DatabaseService {
         return {
             data: rows.map(mapRowToPost),
             total,
+            facets: this.getReadyPostFacets(),
         };
     }
 
@@ -213,11 +267,57 @@ export class DatabaseService {
         return mapRowToPost(row);
     }
 
+    public listAllReadyPosts(): StoredPost[] {
+        const rows = this.db
+            .query(
+                `SELECT * FROM posts
+                 WHERE status = ?
+                 ORDER BY COALESCE(published_at, created_at) DESC, created_at DESC`,
+            )
+            .all('ready') as PostRow[];
+
+        return rows.map(mapRowToPost);
+    }
+
+    public deletePostsNotInNotionIds(notionPageIds: string[]): number {
+        if (notionPageIds.length === 0) {
+            const result = this.db.query('DELETE FROM posts').run() as { changes?: number };
+            return result.changes ?? 0;
+        }
+
+        const placeholders = notionPageIds.map(() => '?').join(', ');
+        const query = `DELETE FROM posts WHERE notion_page_id NOT IN (${placeholders})`;
+        const result = this.db.query(query).run(...notionPageIds) as { changes?: number };
+        return result.changes ?? 0;
+    }
+
+    private getReadyPostFacets(): PostFacets {
+        const rows = this.db
+            .query(
+                `SELECT author, segment
+                 FROM posts
+                 WHERE status = ?`,
+            )
+            .all('ready') as Array<{ author: string | null; segment: string | null }>;
+
+        const authors = buildFacetOptions(rows.map((row) => row.author));
+        const segments = buildFacetOptions(rows.map((row) => row.segment));
+        return { authors, segments };
+    }
+
     private ensurePostColumn(columnName: string, definition: string): void {
         const columns = this.db.query('PRAGMA table_info(posts)').all() as Array<{ name: string }>;
         const hasColumn = columns.some((column) => column.name === columnName);
         if (!hasColumn) {
             this.db.exec(`ALTER TABLE posts ADD COLUMN ${columnName} ${definition}`);
+        }
+    }
+
+    private ensureSyncRunColumn(columnName: string, definition: string): void {
+        const columns = this.db.query('PRAGMA table_info(sync_runs)').all() as Array<{ name: string }>;
+        const hasColumn = columns.some((column) => column.name === columnName);
+        if (!hasColumn) {
+            this.db.exec(`ALTER TABLE sync_runs ADD COLUMN ${columnName} ${definition}`);
         }
     }
 }
@@ -233,6 +333,7 @@ function mapRowToPost(row: PostRow): StoredPost {
         authorEmail: row.author_email,
         authorAvatarUrl: row.author_avatar_url,
         tags: safeParseStringArray(row.tags_json),
+        segment: row.segment,
         status: row.status,
         publishedAt: row.published_at,
         bannerImageUrl: row.banner_image_url,
@@ -254,4 +355,31 @@ function safeParseStringArray(value: string): string[] {
         }
     } catch {}
     return [];
+}
+
+function buildFacetOptions(values: Array<string | null>): Array<{ value: string; count: number }> {
+    const map = new Map<string, { value: string; count: number }>();
+
+    for (const raw of values) {
+        const value = raw?.trim();
+        if (!value) {
+            continue;
+        }
+
+        const key = value.toLowerCase();
+        const existing = map.get(key);
+        if (existing) {
+            existing.count += 1;
+            continue;
+        }
+
+        map.set(key, { value, count: 1 });
+    }
+
+    return Array.from(map.values()).sort((a, b) => {
+        if (b.count !== a.count) {
+            return b.count - a.count;
+        }
+        return a.value.localeCompare(b.value);
+    });
 }

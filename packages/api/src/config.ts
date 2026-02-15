@@ -49,6 +49,7 @@ export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
             port: Number(portValue || configPort || 3000),
         },
         socials: fileConfig?.socials ?? {},
+        site: fileConfig?.site ?? {},
     });
 
     return {

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 import { fetchPosts } from '../../../lib/api';
+import { formatAuthorDisplayName } from '../../../lib/author';
 import { DEFAULT_BLUR_DATA_URL } from '../../../lib/image-placeholder';
 
 export const revalidate = 60;
@@ -56,7 +57,7 @@ export default async function TagPage({ params }) {
                         </Link>
                         <div className="story-body">
                             <p className="story-date">
-                                {post.author ?? 'Unknown'} · {readableDate(post.publishedAt)}
+                                {formatAuthorDisplayName(post.author) || 'Unknown'} · {readableDate(post.publishedAt)}
                             </p>
                             <h2 className="story-title">
                                 <Link href={`/posts/${post.slug}`} className="title-link">

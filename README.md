@@ -53,6 +53,16 @@ Official Notion docs:
 - `DATABASE_PATH`: SQLite DB path (default `./data/blog.db`)
 - `SYNC_INTERVAL`: cron for content sync (default `*/30 * * * *`)
 - `IMAGE_REFRESH_INTERVAL`: cron for image refresh (default `0 * * * *`)
+- `IMAGE_URL_REFRESH_BUFFER_SECONDS`: proactive buffer before signed image URL expiry (default `300`)
+- `IMAGE_URL_REFRESH_COOLDOWN_SECONDS`: minimum gap between request-triggered image refresh runs (default `60`)
+- `RECOMMENDATION_DEFAULT_LIMIT`: default recommendation count per post (default `3`)
+- `RECOMMENDATION_MAX_LIMIT`: max `limit` accepted by recommendations endpoint (default `6`)
+- `RECOMMENDATION_WEIGHT_RELATED`: score boost for manual related-post relation match (default `100`)
+- `RECOMMENDATION_WEIGHT_TAG`: score boost per shared tag (default `20`)
+- `RECOMMENDATION_WEIGHT_SEGMENT`: score boost for same segment (default `12`)
+- `RECOMMENDATION_WEIGHT_FEATURED`: score boost for featured posts (default `8`)
+- `RECOMMENDATION_WEIGHT_RECENCY`: max recency bonus inside window (default `6`)
+- `RECOMMENDATION_RECENCY_WINDOW_DAYS`: days window for recency bonus decay (default `30`)
 - `SYNC_PUBLIC_ONLY`: if `true`, skips non-public pages
 - `CORS_ORIGINS`: comma-separated allowlist (e.g. `http://localhost:3001,https://example.com`)
 - `API_RATE_LIMIT_ENABLED`: enable global/route rate limiting (default `true`)
@@ -146,6 +156,7 @@ curl -X POST http://localhost:3000/api/sync \
 - `POST /api/sync/images`
 - `GET /api/posts`
 - `GET /api/posts/:slug`
+- `GET /api/posts/:slug/recommendations?limit=3`
 - `GET /api/posts/:slug/content`
 - `GET /api/site` (public site settings, currently `socials`)
 
@@ -158,6 +169,7 @@ curl -X POST http://localhost:3000/api/sync \
   - `Summary` (rich_text)
   - `Author` (people)
   - `Tags` (multi_select)
+  - `Segment` (select or rich_text)
   - `Published` (date)
   - `Banner` (files)
   - `Featured` (checkbox)
@@ -174,6 +186,7 @@ curl -X POST http://localhost:3000/api/sync \
   - max 1 request/min per session id
   - max 5 requests/hour per IP
   - global cooldown and in-progress lock prevent sync stampedes
+- Signed Notion image URLs are proactively refreshed before expiry using `IMAGE_URL_REFRESH_BUFFER_SECONDS`.
 - Manual sync routes (`/api/sync`, `/api/sync/images`) can be API-key protected via env vars.
 
 ## Social Dock

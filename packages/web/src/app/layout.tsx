@@ -5,6 +5,7 @@ import localFont from 'next/font/local';
 
 import { SocialDock } from '../components/social-dock';
 import { SyncHintBeacon } from '../components/sync-hint-beacon';
+import { HeaderSearch } from '../components/header-search';
 import { ThemeToggle } from '../components/theme-toggle';
 import { fetchSiteSettings } from '../lib/api';
 
@@ -62,8 +63,68 @@ const themeScript = `
 })();
 `;
 
+const FOLLOW_ORDER = [
+    'linkedin',
+    'x',
+    'instagram',
+    'linktree',
+    'linkedtree',
+    'facebook',
+    'github',
+    'email',
+    'phonenumber',
+] as const;
+
+type FollowKey = (typeof FOLLOW_ORDER)[number];
+type FollowLinks = Partial<Record<FollowKey, string>>;
+
+function ensureUrl(value: string): string {
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+        return value;
+    }
+    return `https://${value}`;
+}
+
+function followHref(key: FollowKey, raw: string): string {
+    if (key === 'email') {
+        return raw.startsWith('mailto:') ? raw : `mailto:${raw}`;
+    }
+    if (key === 'phonenumber') {
+        return raw.startsWith('tel:') ? raw : `tel:${raw}`;
+    }
+    return ensureUrl(raw);
+}
+
+function followLabel(key: FollowKey): string {
+    if (key === 'x') {
+        return 'X';
+    }
+    if (key === 'linktree' || key === 'linkedtree') {
+        return 'Linktree';
+    }
+    if (key === 'phonenumber') {
+        return 'Phone';
+    }
+    return key.charAt(0).toUpperCase() + key.slice(1);
+}
+
 export default async function RootLayout({ children }) {
     const siteSettings = await fetchSiteSettings({ revalidate: 300 });
+    const socials = (siteSettings.socials ?? {}) as FollowLinks;
+    const followLinks = FOLLOW_ORDER.flatMap((key) => {
+        const raw = typeof socials[key] === 'string' ? socials[key]!.trim() : '';
+        if (!raw) {
+            return [];
+        }
+        return [
+            {
+                key,
+                label: followLabel(key),
+                href: followHref(key, raw),
+                external: key !== 'email' && key !== 'phonenumber',
+            },
+        ];
+    });
 
     return (
         <html lang="en" className={`${monaSans.variable} ${sourceSerif.variable}`}>
@@ -74,11 +135,30 @@ export default async function RootLayout({ children }) {
                         <Link href="/" className="brand-mark">
                             Blazion
                         </Link>
-                        <div />
+                        <HeaderSearch />
                         <ThemeToggle />
                     </div>
                 </header>
                 {children}
+                {followLinks.length > 0 ? (
+                    <footer className="site-footer">
+                        <div className="shell follow-wrap">
+                            <p>Follow the author</p>
+                            <div className="follow-links">
+                                {followLinks.map((item) => (
+                                    <a
+                                        key={item.key}
+                                        href={item.href}
+                                        target={item.external ? '_blank' : undefined}
+                                        rel={item.external ? 'noreferrer noopener' : undefined}
+                                    >
+                                        {item.label}
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+                    </footer>
+                ) : null}
                 <SyncHintBeacon />
                 <SocialDock socials={siteSettings.socials} />
             </body>

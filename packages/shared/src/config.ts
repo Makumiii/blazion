@@ -31,6 +31,9 @@ export const blogEngineConfigSchema = z.object({
         port: z.number().int().min(1).max(65535),
     }),
     socials: socialLinksSchema,
+    site: z.object({
+        homeHeader: z.string().min(1),
+    }),
 });
 
 export type BlogEngineConfig = z.infer<typeof blogEngineConfigSchema>;
@@ -42,6 +45,7 @@ export interface BlogEngineConfigInput {
     database?: Partial<BlogEngineConfig['database']>;
     server?: Partial<BlogEngineConfig['server']>;
     socials?: Partial<BlogEngineConfig['socials']>;
+    site?: Partial<BlogEngineConfig['site']>;
 }
 
 export const defaultBlogEngineConfig: Omit<BlogEngineConfig, 'notion'> = {
@@ -59,6 +63,9 @@ export const defaultBlogEngineConfig: Omit<BlogEngineConfig, 'notion'> = {
         port: 3000,
     },
     socials: {},
+    site: {
+        homeHeader: 'Stories from your Notion publication',
+    },
 };
 
 export function defineConfig(config: BlogEngineConfigInput): BlogEngineConfig {
@@ -83,6 +90,10 @@ export function defineConfig(config: BlogEngineConfigInput): BlogEngineConfig {
         socials: {
             ...defaultBlogEngineConfig.socials,
             ...config.socials,
+        },
+        site: {
+            ...defaultBlogEngineConfig.site,
+            ...config.site,
         },
     };
 
