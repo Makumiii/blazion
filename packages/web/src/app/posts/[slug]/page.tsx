@@ -13,15 +13,17 @@ import { estimateReadTime } from '../../../lib/reading-time';
 
 export const revalidate = 60;
 
-function readableDate(value) {
+function readableDate(value: string | null) {
     if (!value) return 'Unscheduled';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-    });
+    return date
+        .toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+        })
+        .toUpperCase();
 }
 
 export async function generateMetadata({ params }): Promise<Metadata> {
@@ -105,92 +107,93 @@ export default async function PostDetailPage({ params }) {
     };
 
     return (
-        <main className="shell article-shell">
+        <main className="shell post-shell">
             <ReadingProgress />
             <BackButton />
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
 
-            <article className="article">
-                <section className="featured-story article-hero-match">
-                    <div className="featured-left">
+            <article className="post-stage">
+                <section className="spotlight post-spotlight" aria-label="Article header">
+                    <div className="spotlight-media-wrap">
                         {post.bannerImageUrl ? (
                             <Image
                                 src={post.bannerImageUrl}
-                                alt={post.title}
-                                className="featured-media"
-                                width={1600}
-                                height={900}
-                                sizes="(max-width: 980px) 100vw, 62vw"
+                                alt=""
+                                className="spotlight-media"
+                                width={800}
+                                height={1000}
+                                sizes="(max-width: 980px) 100vw, 50vw"
                                 placeholder="blur"
                                 blurDataURL={DEFAULT_BLUR_DATA_URL}
                                 priority
                             />
                         ) : (
-                            <div className="featured-media featured-media-fallback" />
+                            <div className="spotlight-media spotlight-media-fallback" role="presentation" />
                         )}
                     </div>
-                    <div className="featured-body">
-                        <p className="story-date">
+                    <div className="spotlight-content">
+                        <p className="section-kicker">Field Note</p>
+                        <p className="meta-line">
                             {readableDate(post.publishedAt)}
-                            {readTimeMinutes ? ` · ${readTimeMinutes} min read` : ''}
+                            {readTimeMinutes ? ` · ${readTimeMinutes} MIN READ` : ''}
                         </p>
-                        <h1 className="featured-title">{post.title}</h1>
-                        <p className="story-author">{displayAuthor || 'Unknown author'}</p>
-                        <div className="tags">
-                            {post.tags.map((tag) => (
-                                <Link key={tag} href={`/tags/${encodeURIComponent(tag)}`}>
-                                    {tag}
-                                </Link>
-                            ))}
-                        </div>
+                        <h1 className="spotlight-title">{post.title}</h1>
+                        <p className="byline">{displayAuthor || 'Unknown author'}</p>
+                        {post.summary ? <p className="lede">{post.summary}</p> : null}
+                        {post.tags.length > 0 ? (
+                            <nav className="topic-pills" aria-label="Article topics">
+                                {post.tags.map((tag) => (
+                                    <Link key={tag} href={`/tags/${encodeURIComponent(tag)}`}>
+                                        {tag}
+                                    </Link>
+                                ))}
+                            </nav>
+                        ) : null}
                     </div>
                 </section>
 
                 {content?.renderMode === 'recordMap' ? (
                     <NotionContent recordMap={content.recordMap} />
                 ) : content?.renderMode === 'blocks' ? (
-                    <p className="content-state">Private Notion page. Public renderer not available.</p>
+                    <p className="content-panel" role="status">Private Notion page — public renderer not available.</p>
                 ) : (
-                    <p className="content-state">Unable to load post content from API right now. Please retry.</p>
+                    <p className="content-panel" role="status">Unable to load content. Please retry.</p>
                 )}
 
                 {recommendations.data.length > 0 ? (
-                    <section className="post-recommendations" aria-label="Related Reads">
-                        <div className="post-recommendations-head">
-                            <p className="eyebrow">
-                                {recommendations.strategy === 'latest' ? 'Latest Reads' : 'Related Reads'}
+                    <section className="continue-reading" aria-label="Continue reading">
+                        <div className="continue-reading-head">
+                            <p className="section-kicker">
+                                {recommendations.strategy === 'latest' ? 'Latest' : 'Related'}
                             </p>
-                            <h2>Keep Reading</h2>
+                            <h2>Continue Reading</h2>
                         </div>
-                        <div className="post-recommendations-grid">
+                        <div className="continue-grid">
                             {recommendations.data.map((item) => (
-                                <article key={item.id} className="post-recommendation-card">
-                                    <Link href={`/posts/${item.slug}`} className="post-recommendation-link">
+                                <article key={item.id} className="continue-card">
+                                    <Link href={`/posts/${item.slug}`} className="continue-link" aria-label={`Read ${item.title}`}>
                                         {item.bannerImageUrl ? (
                                             <Image
                                                 src={item.bannerImageUrl}
-                                                alt={item.title}
-                                                className="post-recommendation-media"
-                                                width={1200}
-                                                height={675}
+                                                alt=""
+                                                className="continue-media"
+                                                width={600}
+                                                height={400}
                                                 sizes="(max-width: 980px) 100vw, 32vw"
                                                 placeholder="blur"
                                                 blurDataURL={DEFAULT_BLUR_DATA_URL}
                                             />
                                         ) : (
-                                            <div className="post-recommendation-media post-recommendation-media-fallback" />
+                                            <div className="continue-media continue-media-fallback" role="presentation" />
                                         )}
-                                        <div className="post-recommendation-body">
-                                            <p className="story-date">
+                                        <div className="continue-body">
+                                            <p className="meta-line">
                                                 {readableDate(item.publishedAt)}
-                                                {item.readTimeMinutes ? ` · ${item.readTimeMinutes} min read` : ''}
+                                                {item.readTimeMinutes ? ` · ${item.readTimeMinutes} MIN READ` : ''}
                                             </p>
-                                            <h3 className="post-recommendation-title">{item.title}</h3>
-                                            <p className="story-author">
+                                            <h3 className="continue-title">{item.title}</h3>
+                                            <p className="byline">
                                                 {formatAuthorDisplayName(item.author) || 'Unknown author'}
-                                            </p>
-                                            <p className="post-recommendation-summary">
-                                                {item.summary ?? 'Continue exploring related ideas from this publication.'}
                                             </p>
                                         </div>
                                     </Link>

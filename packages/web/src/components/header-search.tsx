@@ -1,7 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import Fuse from 'fuse.js';
+import { Search } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { fetchSearchIndexClient } from '@/lib/client-api';
 
 interface SearchPost {
     id: string;
@@ -14,75 +22,6 @@ interface SearchPost {
     publishedAt: string | null;
     readTimeMinutes: number | null;
     featured: boolean;
-}
-
-function apiBaseUrl(): string {
-    return (
-        process.env.NEXT_PUBLIC_BLAZION_API_URL ??
-        process.env.BLAZION_API_URL ??
-        'http://localhost:3000'
-    );
-}
-
-function normalize(input: string): string {
-    return input.trim().toLowerCase();
-}
-
-function subsequenceScore(query: string, text: string): number {
-    if (!query || !text) {
-        return 0;
-    }
-
-    let score = 0;
-    let qi = 0;
-    let consecutive = 0;
-
-    for (let ti = 0; ti < text.length && qi < query.length; ti += 1) {
-        if (query[qi] === text[ti]) {
-            qi += 1;
-            consecutive += 1;
-            score += 1 + consecutive * 0.25;
-        } else {
-            consecutive = 0;
-        }
-    }
-
-    if (qi !== query.length) {
-        return 0;
-    }
-
-    return score / Math.max(1, text.length);
-}
-
-function scoreField(query: string, value: string, weight: number): number {
-    const normalized = normalize(value);
-    if (!normalized) {
-        return 0;
-    }
-
-    const directIndex = normalized.indexOf(query);
-    if (directIndex >= 0) {
-        return weight * (2.2 - Math.min(1, directIndex / Math.max(1, normalized.length)));
-    }
-
-    const fuzzy = subsequenceScore(query, normalized);
-    return fuzzy > 0 ? fuzzy * weight : 0;
-}
-
-function scorePost(query: string, post: SearchPost): number {
-    const tagText = post.tags.join(' ');
-    let score = 0;
-    score += scoreField(query, post.title, 8);
-    score += scoreField(query, post.summary ?? '', 3.5);
-    score += scoreField(query, tagText, 3);
-    score += scoreField(query, post.author ?? '', 2.4);
-    score += scoreField(query, post.segment ?? '', 2.2);
-
-    if (post.featured) {
-        score += 0.15;
-    }
-
-    return score;
 }
 
 function readableDate(value: string | null): string {
@@ -104,12 +43,16 @@ export function HeaderSearch() {
     const router = useRouter();
     const rootRef = useRef<HTMLFormElement | null>(null);
     const [open, setOpen] = useState(false);
-    const [loading, setLoading] = useState(false);
     const [query, setQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
-    const [posts, setPosts] = useState<SearchPost[]>([]);
     const [activeIndex, setActiveIndex] = useState(-1);
-    const [loaded, setLoaded] = useState(false);
+
+    const searchIndexQuery = useQuery({
+        queryKey: ['search-index'],
+        queryFn: () => fetchSearchIndexClient(400),
+        staleTime: 120_000,
+        enabled: open,
+    });
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -119,48 +62,9 @@ export function HeaderSearch() {
     }, [query]);
 
     useEffect(() => {
-        if (!open || loaded) {
-            return;
-        }
-
-        let cancelled = false;
-        setLoading(true);
-        fetch(`${apiBaseUrl()}/api/search-index?limit=300`)
-            .then(async (response) => {
-                if (!response.ok) {
-                    return { data: [] };
-                }
-                return response.json();
-            })
-            .then((payload) => {
-                if (cancelled) {
-                    return;
-                }
-                setPosts(Array.isArray(payload?.data) ? payload.data : []);
-                setLoaded(true);
-            })
-            .catch(() => {
-                if (!cancelled) {
-                    setPosts([]);
-                    setLoaded(true);
-                }
-            })
-            .finally(() => {
-                if (!cancelled) {
-                    setLoading(false);
-                }
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [open, loaded]);
-
-    useEffect(() => {
         if (!open) {
             return;
         }
-
         const onPointerDown = (event: MouseEvent) => {
             const target = event.target as Node | null;
             if (!target) {
@@ -176,26 +80,36 @@ export function HeaderSearch() {
         return () => document.removeEventListener('mousedown', onPointerDown);
     }, [open]);
 
-    const normalizedQuery = normalize(debouncedQuery);
+    const normalizedQuery = debouncedQuery.trim();
+    const posts = (searchIndexQuery.data?.data ?? []) as SearchPost[];
+
+    const fuse = useMemo(() => {
+        return new Fuse(posts, {
+            includeScore: true,
+            shouldSort: true,
+            threshold: 0.38,
+            ignoreLocation: true,
+            minMatchCharLength: 2,
+            keys: [
+                { name: 'title', weight: 0.55 },
+                { name: 'summary', weight: 0.15 },
+                { name: 'tags', weight: 0.15 },
+                { name: 'segment', weight: 0.1 },
+                { name: 'author', weight: 0.05 },
+            ],
+        });
+    }, [posts]);
+
     const results = useMemo(() => {
         if (normalizedQuery.length < 2) {
             return [];
         }
-
-        return posts
-            .map((post) => ({
-                post,
-                score: scorePost(normalizedQuery, post),
-            }))
-            .filter((entry) => entry.score > 0)
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 8)
-            .map((entry) => entry.post);
-    }, [posts, normalizedQuery]);
+        return fuse.search(normalizedQuery, { limit: 8 }).map((item) => item.item);
+    }, [fuse, normalizedQuery]);
 
     useEffect(() => {
         setActiveIndex(results.length > 0 ? 0 : -1);
-    }, [normalizedQuery, results.length]);
+    }, [results.length, normalizedQuery]);
 
     function navigateToSlug(slug: string): void {
         setOpen(false);
@@ -209,12 +123,10 @@ export function HeaderSearch() {
         if (!trimmed) {
             return;
         }
-
         if (results.length > 0 && activeIndex >= 0) {
             navigateToSlug(results[activeIndex].slug);
             return;
         }
-
         setOpen(false);
         router.push(`/?q=${encodeURIComponent(trimmed)}`);
     }
@@ -222,17 +134,13 @@ export function HeaderSearch() {
     function onKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
         if (event.key === 'ArrowDown') {
             event.preventDefault();
-            if (results.length === 0) {
-                return;
-            }
+            if (results.length === 0) return;
             setActiveIndex((prev) => (prev + 1) % results.length);
             return;
         }
         if (event.key === 'ArrowUp') {
             event.preventDefault();
-            if (results.length === 0) {
-                return;
-            }
+            if (results.length === 0) return;
             setActiveIndex((prev) => (prev <= 0 ? results.length - 1 : prev - 1));
             return;
         }
@@ -259,17 +167,12 @@ export function HeaderSearch() {
             }}
         >
             <div className="header-search-shell">
-                <span className="header-search-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
-                        <circle cx="11" cy="11" r="7" />
-                        <path d="M20 20L16.5 16.5" />
-                    </svg>
-                </span>
-                <input
+                <Search className="header-search-icon" strokeWidth={1.8} aria-hidden="true" />
+                <Input
                     type="search"
                     name="q"
                     className="header-search-input"
-                    placeholder="What post are you looking for"
+                    placeholder="Search articles…"
                     aria-label="Search articles"
                     value={query}
                     autoComplete="off"
@@ -283,15 +186,21 @@ export function HeaderSearch() {
             </div>
 
             {open ? (
-                <div className="header-search-panel" role="listbox" aria-label="Search results">
-                    {loading ? <p className="header-search-state">Loading posts...</p> : null}
-                    {!loading && normalizedQuery.length < 2 ? (
+                <Card className="header-search-panel" role="listbox" aria-label="Search results">
+                    {searchIndexQuery.isLoading ? (
+                        <div className="header-search-state search-loading">
+                            <Skeleton className="h-4 w-40" />
+                            <Skeleton className="h-9 w-full" />
+                            <Skeleton className="h-9 w-full" />
+                        </div>
+                    ) : null}
+                    {!searchIndexQuery.isLoading && normalizedQuery.length < 2 ? (
                         <p className="header-search-state">Type at least 2 characters</p>
                     ) : null}
-                    {!loading && normalizedQuery.length >= 2 && results.length === 0 ? (
+                    {!searchIndexQuery.isLoading && normalizedQuery.length >= 2 && results.length === 0 ? (
                         <p className="header-search-state">No matching posts</p>
                     ) : null}
-                    {!loading && results.length > 0 ? (
+                    {!searchIndexQuery.isLoading && results.length > 0 ? (
                         <ul className="header-search-list">
                             {results.map((post, index) => (
                                 <li key={post.id}>
@@ -312,7 +221,7 @@ export function HeaderSearch() {
                             ))}
                         </ul>
                     ) : null}
-                </div>
+                </Card>
             ) : null}
         </form>
     );

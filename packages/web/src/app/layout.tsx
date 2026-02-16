@@ -1,55 +1,30 @@
 import './globals.css';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import localFont from 'next/font/local';
 
 import { SocialDock } from '../components/social-dock';
 import { SyncHintBeacon } from '../components/sync-hint-beacon';
 import { HeaderSearch } from '../components/header-search';
 import { ThemeToggle } from '../components/theme-toggle';
+import { QueryProvider } from '../components/providers/query-provider';
 import { fetchSiteSettings } from '../lib/api';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3001';
 
-const monaSans = localFont({
-    src: '../../../../node_modules/.pnpm/node_modules/@fontsource-variable/mona-sans/files/mona-sans-latin-wght-normal.woff2',
-    weight: '200 900',
-    style: 'normal',
-    variable: '--font-sans',
-    display: 'swap',
-});
-
-const sourceSerif = localFont({
-    src: [
-        {
-            path: '../../../../node_modules/.pnpm/node_modules/@fontsource/source-serif-4/files/source-serif-4-latin-400-normal.woff2',
-            weight: '400',
-            style: 'normal',
-        },
-        {
-            path: '../../../../node_modules/.pnpm/node_modules/@fontsource/source-serif-4/files/source-serif-4-latin-600-normal.woff2',
-            weight: '600',
-            style: 'normal',
-        },
-    ],
-    variable: '--font-serif',
-    display: 'swap',
-});
-
 export const metadata: Metadata = {
     metadataBase: new URL(siteUrl),
     title: 'Blazion',
-    description: 'A minimalist publication powered by Notion',
+    description: 'Operational intelligence and strategic writing for product organizations.',
     openGraph: {
         type: 'website',
         title: 'Blazion',
-        description: 'A minimalist publication powered by Notion',
+        description: 'Operational intelligence and strategic writing for product organizations.',
         url: siteUrl,
     },
     twitter: {
         card: 'summary_large_image',
         title: 'Blazion',
-        description: 'A minimalist publication powered by Notion',
+        description: 'Operational intelligence and strategic writing for product organizations.',
     },
 };
 
@@ -127,40 +102,45 @@ export default async function RootLayout({ children }) {
     });
 
     return (
-        <html lang="en" className={`${monaSans.variable} ${sourceSerif.variable}`}>
+        <html lang="en">
             <body>
                 <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-                <header className="site-header">
-                    <div className="shell nav-wrap">
-                        <Link href="/" className="brand-mark">
-                            Blazion
-                        </Link>
-                        <HeaderSearch />
-                        <ThemeToggle />
-                    </div>
-                </header>
-                {children}
-                {followLinks.length > 0 ? (
-                    <footer className="site-footer">
-                        <div className="shell follow-wrap">
-                            <p>Follow the author</p>
-                            <div className="follow-links">
-                                {followLinks.map((item) => (
-                                    <a
-                                        key={item.key}
-                                        href={item.href}
-                                        target={item.external ? '_blank' : undefined}
-                                        rel={item.external ? 'noreferrer noopener' : undefined}
-                                    >
-                                        {item.label}
-                                    </a>
-                                ))}
+                <QueryProvider>
+                    <header className="topbar">
+                        <div className="shell topbar-inner">
+                            <div className="brand-cluster">
+                                <Link href="/" className="brand-wordmark">
+                                    Blazion
+                                </Link>
+                                <p className="brand-caption">Strategic Product Journal</p>
                             </div>
+                            <HeaderSearch />
+                            <ThemeToggle />
                         </div>
-                    </footer>
-                ) : null}
-                <SyncHintBeacon />
-                <SocialDock socials={siteSettings.socials} />
+                    </header>
+                    {children}
+                    {followLinks.length > 0 ? (
+                        <footer className="global-footer">
+                            <div className="shell footer-inner">
+                                <p>Author channels</p>
+                                <div className="footer-links">
+                                    {followLinks.map((item) => (
+                                        <a
+                                            key={item.key}
+                                            href={item.href}
+                                            target={item.external ? '_blank' : undefined}
+                                            rel={item.external ? 'noreferrer noopener' : undefined}
+                                        >
+                                            {item.label}
+                                        </a>
+                                    ))}
+                                </div>
+                            </div>
+                        </footer>
+                    ) : null}
+                    <SyncHintBeacon />
+                    <SocialDock socials={siteSettings.socials} />
+                </QueryProvider>
             </body>
         </html>
     );

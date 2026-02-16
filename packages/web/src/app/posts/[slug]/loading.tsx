@@ -1,34 +1,40 @@
+import { Skeleton } from '@/components/ui/skeleton';
+
 export default function LoadingPost() {
     return (
         <main className="shell article-shell" aria-busy="true" aria-live="polite">
-            <div className="skeleton skeleton-line" style={{ width: 112, marginBottom: '1rem' }} />
+            <Skeleton className="mb-6 h-4 w-20" />
 
             <article className="article">
-                <section className="featured-story article-hero-match">
+                <section className="featured-story" style={{ animationDelay: '0ms' }}>
                     <div className="featured-left">
-                        <div className="skeleton skeleton-media" />
+                        <Skeleton className="w-full aspect-[4/5]" />
                     </div>
-                    <div className="featured-body skeleton-stack">
-                        <div className="skeleton skeleton-line" style={{ width: 240 }} />
-                        <div className="skeleton skeleton-line-lg" style={{ width: '94%' }} />
-                        <div className="skeleton skeleton-line" style={{ width: 180 }} />
-                        <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
-                            <div className="skeleton skeleton-line" style={{ width: 66 }} />
-                            <div className="skeleton skeleton-line" style={{ width: 74 }} />
-                            <div className="skeleton skeleton-line" style={{ width: 62 }} />
+                    <div className="featured-body" style={{ gap: '1rem' }}>
+                        <Skeleton className="h-3 w-44" />
+                        <Skeleton className="h-14 w-[92%]" />
+                        <Skeleton className="h-14 w-[55%]" />
+                        <Skeleton className="h-3 w-32" />
+                        <div className="flex gap-2">
+                            <Skeleton className="h-6 w-14" />
+                            <Skeleton className="h-6 w-18" />
+                            <Skeleton className="h-6 w-16" />
                         </div>
                     </div>
                 </section>
 
-                <section className="content-state" style={{ marginTop: '1.6rem' }}>
-                    <div className="skeleton-stack">
-                        {Array.from({ length: 9 }).map((_, idx) => (
-                            <div
+                <section className="content-state mt-10">
+                    <div className="grid gap-4">
+                        {Array.from({ length: 8 }).map((_, idx) => (
+                            <Skeleton
                                 key={idx}
-                                className="skeleton skeleton-line"
-                                style={{
-                                    width: idx % 4 === 0 ? '72%' : idx % 3 === 0 ? '88%' : '96%',
-                                }}
+                                className={
+                                    idx % 4 === 0
+                                        ? 'h-4 w-[65%]'
+                                        : idx % 3 === 0
+                                            ? 'h-4 w-[82%]'
+                                            : 'h-4 w-[95%]'
+                                }
                             />
                         ))}
                     </div>
