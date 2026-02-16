@@ -332,7 +332,10 @@
   z-index: 65;
   border: 1px solid var(--rule);
   border-radius: 0.9rem;
-  background: hsl(var(--background));
+  background: hsl(var(--background)) !important;
+  opacity: 1;
+  isolation: isolate;
+  backdrop-filter: none;
   box-shadow: 0 24px 52px hsl(var(--foreground) / 0.16);
   overflow: hidden;
   animation: reveal-up var(--t-base) var(--ease-main) both;
@@ -488,17 +491,23 @@
   justify-items: center;
   gap: var(--space-3);
   margin-bottom: var(--space-4);
+  position: relative;
+  z-index: 20;
+  isolation: isolate;
   animation: reveal-up var(--t-base) var(--ease-main) both;
 }
 
 .home-search-wrap {
   width: 100%;
   max-width: 26rem;
+  position: relative;
+  z-index: 25;
 }
 
 .home-search-wrap .header-search {
   width: 100%;
   justify-self: center;
+  z-index: 30;
 }
 
 .home-search-wrap .header-search-shell {
@@ -525,6 +534,16 @@
 
 .home-search-wrap .header-search-input::placeholder {
   color: var(--ink-faint);
+}
+
+.home-search-wrap .header-search-panel {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  right: 0;
+  margin-top: 0;
+  z-index: 100;
+  box-shadow: 0 18px 36px hsl(var(--foreground) / 0.14);
 }
 
 .filter-carousel-shell {
