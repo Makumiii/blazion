@@ -1654,8 +1654,9 @@
   border: 1px solid var(--rule);
   border-radius: 0.78rem;
   background: hsl(var(--background));
-  box-shadow: 0 4px 14px hsl(var(--foreground) / 0.06);
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.05);
   padding: clamp(0.8rem, 2vw, 1.1rem);
+  overflow: hidden;
 }
 
 .post-discussion-panel #giscus_thread {
@@ -1668,6 +1669,12 @@
 
 .post-discussion-panel iframe.giscus-frame {
   border-radius: 0.5rem;
+}
+
+.dark .post-discussion-panel {
+  border-color: hsl(var(--foreground) / 0.18);
+  box-shadow: none;
+  background: hsl(var(--background));
 }
 
 .post-discussion-note {

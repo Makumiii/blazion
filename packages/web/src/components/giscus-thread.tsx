@@ -16,11 +16,11 @@ function hasGiscusConfig() {
     return Boolean(GISCUS_REPO && GISCUS_REPO_ID && GISCUS_CATEGORY && GISCUS_CATEGORY_ID);
 }
 
-function currentGiscusTheme(): 'light' | 'dark' {
+function currentGiscusTheme(): 'light' | 'dark_dimmed' {
     if (typeof document === 'undefined') {
         return 'light';
     }
-    return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+    return document.documentElement.classList.contains('dark') ? 'dark_dimmed' : 'light';
 }
 
 export function GiscusThread({ title }: GiscusThreadProps) {
