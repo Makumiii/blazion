@@ -127,6 +127,10 @@ export function HomeFeed() {
         }
     }
 
+    function openPost(slug: string) {
+        router.push(`/posts/${slug}`);
+    }
+
     const total = response?.pagination.total ?? 0;
     const currentPage = response?.pagination.page ?? page;
     const totalPages = response?.pagination.totalPages ?? 0;
@@ -196,7 +200,20 @@ export function HomeFeed() {
                         <span aria-hidden="true" />
                     </div>
                     {posts.map((post) => (
-                        <article key={post.id} className="ledger-row">
+                        <article
+                            key={post.id}
+                            className="ledger-row"
+                            role="link"
+                            tabIndex={0}
+                            aria-label={`Open article: ${post.title}`}
+                            onClick={() => openPost(post.slug)}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    openPost(post.slug);
+                                }
+                            }}
+                        >
                             <p className="ledger-date">
                                 <span className="ledger-dot" aria-hidden="true" />
                                 <span>{ledgerDate(post.publishedAt)}</span>
@@ -205,13 +222,12 @@ export function HomeFeed() {
                                 <h2 className="ledger-title">
                                     <Link href={`/posts/${post.slug}`} className="headline-link">
                                         <span>{post.title}</span>
-                                        <span className="ledger-outlink" aria-hidden="true">↗</span>
                                     </Link>
                                 </h2>
                                 <p className="ledger-summary">{post.summary ?? 'No summary yet.'}</p>
                             </div>
                             <p className="ledger-author">BY {(post.author ?? 'Editorial Desk').toUpperCase()}</p>
-                            <span className="ledger-more" aria-hidden="true">+</span>
+                            <span className="ledger-more" aria-hidden="true">↗</span>
                         </article>
                     ))}
                 </section>

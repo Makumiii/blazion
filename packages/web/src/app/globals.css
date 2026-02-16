@@ -622,10 +622,11 @@
 }
 
 .ledger-head {
+  --ledger-col-gap: 1rem;
   display: grid;
   grid-template-columns: minmax(7.6rem, 8.8rem) minmax(0, 1fr) minmax(10rem, 14rem) 1.4rem;
   align-items: center;
-  gap: 1rem;
+  gap: var(--ledger-col-gap);
   padding: 0.55rem 0.1rem 0.45rem;
   color: var(--ink-faint);
   font-family: 'Avenir Next', Avenir, 'Segoe UI', Arial, sans-serif;
@@ -636,12 +637,14 @@
 }
 
 .ledger-row {
+  --ledger-col-gap: 1rem;
   display: grid;
   grid-template-columns: minmax(7.6rem, 8.8rem) minmax(0, 1fr) minmax(10rem, 14rem) 1.4rem;
   align-items: center;
-  gap: 1rem;
+  gap: var(--ledger-col-gap);
   border-top: 1px solid hsl(var(--foreground) / 0.18);
   padding: 0.6rem 0.1rem 0.68rem;
+  cursor: pointer;
   transition: background var(--t-fast) var(--ease-soft);
 }
 
@@ -704,23 +707,6 @@
   max-width: fit-content;
 }
 
-.ledger-outlink {
-  position: static;
-  color: inherit;
-  font-size: 0.86em;
-  line-height: 1;
-  margin-top: 0.02em;
-  opacity: 0;
-  transform: translateY(0.2rem);
-  transition: opacity var(--t-fast) var(--ease-soft), transform var(--t-fast) var(--ease-soft);
-}
-
-.ledger-row:hover .ledger-outlink,
-.ledger-row:focus-within .ledger-outlink {
-  opacity: 1;
-  transform: translateY(0);
-}
-
 .ledger-summary {
   margin: 0;
   color: var(--ink-soft);
@@ -729,12 +715,26 @@
 }
 
 .ledger-more {
-  justify-self: end;
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  align-self: start;
+  justify-self: start;
+  width: 1.4rem;
   color: var(--ink-faint);
   font-family: 'Avenir Next', Avenir, 'Segoe UI', Arial, sans-serif;
-  font-size: 1.5rem;
-  font-weight: 520;
+  font-size: 1.06rem;
+  font-weight: 680;
   line-height: 1;
+  opacity: 1;
+  margin-top: 0.12rem;
+  margin-left: calc(-1 * (var(--ledger-col-gap) + 1.4rem));
+  transition: color var(--t-fast) var(--ease-soft);
+}
+
+.ledger-row:hover .ledger-more,
+.ledger-row:focus-within .ledger-more {
+  color: var(--ink);
 }
 
 .spotlight,
@@ -1970,7 +1970,8 @@
   .ledger-more {
     grid-area: more;
     align-self: start;
-    margin-top: 0.2rem;
+    margin-top: 0.1rem;
+    margin-left: 0;
   }
 
   .article-row-grid,
