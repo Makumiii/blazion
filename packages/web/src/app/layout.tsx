@@ -1,11 +1,7 @@
 import './globals.css';
-import Link from 'next/link';
 import type { Metadata } from 'next';
 
-import { SocialDock } from '../components/social-dock';
 import { SyncHintBeacon } from '../components/sync-hint-beacon';
-import { HeaderSearch } from '../components/header-search';
-import { ThemeToggle } from '../components/theme-toggle';
 import { QueryProvider } from '../components/providers/query-provider';
 import { fetchSiteSettings } from '../lib/api';
 
@@ -106,23 +102,10 @@ export default async function RootLayout({ children }) {
             <body>
                 <script dangerouslySetInnerHTML={{ __html: themeScript }} />
                 <QueryProvider>
-                    <header className="topbar">
-                        <div className="shell topbar-inner">
-                            <div className="brand-cluster">
-                                <Link href="/" className="brand-wordmark">
-                                    Blazion
-                                </Link>
-                                <p className="brand-caption">Strategic Product Journal</p>
-                            </div>
-                            <HeaderSearch />
-                            <ThemeToggle />
-                        </div>
-                    </header>
                     {children}
                     {followLinks.length > 0 ? (
                         <footer className="global-footer">
                             <div className="shell footer-inner">
-                                <p>Author channels</p>
                                 <div className="footer-links">
                                     {followLinks.map((item) => (
                                         <a
@@ -139,7 +122,6 @@ export default async function RootLayout({ children }) {
                         </footer>
                     ) : null}
                     <SyncHintBeacon />
-                    <SocialDock socials={siteSettings.socials} />
                 </QueryProvider>
             </body>
         </html>

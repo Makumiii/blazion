@@ -16,7 +16,6 @@ export function BackButton() {
     return (
         <button type="button" onClick={onBack} className="back-link" aria-label="Go back">
             <span aria-hidden="true">←</span>
-            <span>Back</span>
         </button>
     );
 }
