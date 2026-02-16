@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 
 import { BackButton } from '../../../components/back-button';
+import { GiscusThread } from '../../../components/giscus-thread';
 import { NotionContent } from '../../../components/notion-content';
 import { PostSharePanel } from '../../../components/post-share-panel';
 import { ReadingProgress } from '../../../components/reading-progress';
@@ -184,6 +185,9 @@ export default async function PostDetailPage({ params }) {
                     <section className="post-recommendations" aria-label="Related articles">
                         <header className="post-recommendations-head">
                             <p className="digest-kicker">/ Related Articles</p>
+                            {hasRecommendationCarousel ? (
+                                <p className="post-recommendations-hint">Swipe to see more</p>
+                            ) : null}
                         </header>
 
                         <div
@@ -249,6 +253,8 @@ export default async function PostDetailPage({ params }) {
                         </div>
                     </section>
                 ) : null}
+
+                <GiscusThread title={post.title} />
             </article>
         </main>
     );

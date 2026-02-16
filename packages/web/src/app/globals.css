@@ -1360,6 +1360,15 @@
   gap: 0.4rem;
 }
 
+.post-recommendations-hint {
+  margin: 0;
+  color: var(--ink-faint);
+  font-family: var(--font-sans);
+  font-size: var(--step--1);
+  font-weight: 620;
+  letter-spacing: 0.04em;
+}
+
 .continue-reading-head h2,
 .post-recommendations-head h2 {
   font-size: clamp(1.56rem, 2.7vw, 2.3rem);
@@ -1439,9 +1448,11 @@
 }
 
 .post-recommendations-carousel.is-carousel {
+  position: relative;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--shell-pad);
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--foreground) / 0.24) transparent;
   margin-inline: calc(-1 * var(--shell-pad));
@@ -1564,6 +1575,46 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-family: var(--font-sans);
+}
+
+.post-discussion {
+  margin-top: clamp(3rem, 7vw, 5rem);
+  padding-top: clamp(2.2rem, 4.8vw, 3rem);
+  border-top: 1px solid var(--rule);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.post-discussion-head {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.post-discussion-panel {
+  border: 1px solid var(--rule);
+  border-radius: 0.78rem;
+  background: hsl(var(--background));
+  box-shadow: 0 4px 14px hsl(var(--foreground) / 0.06);
+  padding: clamp(0.8rem, 2vw, 1.1rem);
+}
+
+.post-discussion-panel #giscus_thread {
+  min-height: 9rem;
+}
+
+.post-discussion-panel .giscus {
+  margin-top: 0.1rem;
+}
+
+.post-discussion-panel iframe.giscus-frame {
+  border-radius: 0.5rem;
+}
+
+.post-discussion-note {
+  margin: 0 0 var(--space-3);
+  color: var(--ink-faint);
+  font-family: var(--font-sans);
+  font-size: var(--step--1);
 }
 
 .social-dock {
@@ -1939,8 +1990,26 @@
     grid-template-columns: 1fr;
   }
 
+  .post-recommendations-carousel.is-carousel {
+    margin-inline: 0;
+    padding-inline: 0;
+    scroll-padding-inline: 0;
+  }
+
   .post-recommendations-carousel.is-carousel .post-recommendations-track {
-    grid-auto-columns: 92%;
+    grid-auto-columns: minmax(16rem, 86%);
+    gap: 0.9rem;
+  }
+
+  .post-recommendations-carousel.is-carousel::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 1.2rem;
+    height: 100%;
+    pointer-events: none;
+    background: linear-gradient(270deg, hsl(var(--background)), transparent);
   }
 
   .post-recommendation-link {

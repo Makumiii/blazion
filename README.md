@@ -50,6 +50,11 @@ Official Notion docs:
 - `PORT`: API port (default `3000`)
 - `BLAZION_API_URL` or `NEXT_PUBLIC_BLAZION_API_URL`: web-to-api base URL (default `http://localhost:3000`)
 - `BLAZION_API_URL` or `NEXT_PUBLIC_BLAZION_API_URL`: API base URL aliases
+- `NEXT_PUBLIC_GISCUS_REPO`: GitHub repo in `owner/name` format for Giscus discussions
+- `NEXT_PUBLIC_GISCUS_REPO_ID`: repository id from giscus.app setup
+- `NEXT_PUBLIC_GISCUS_CATEGORY`: discussion category name from giscus.app setup
+- `NEXT_PUBLIC_GISCUS_CATEGORY_ID`: category id from giscus.app setup
+- `NEXT_PUBLIC_GISCUS_MAPPING`: mapping strategy (default `pathname`)
 - `DATABASE_PATH`: SQLite DB path (default `./data/blog.db`)
 - `SYNC_INTERVAL`: cron for content sync (default `*/30 * * * *`)
 - `IMAGE_REFRESH_INTERVAL`: cron for image refresh (default `0 * * * *`)
