@@ -406,43 +406,103 @@
 
 .theme-switch {
   border: 0;
+  border-radius: 0;
   background: transparent;
-  padding: 0;
+  box-shadow: none;
+  padding: 0.34rem;
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .theme-switch-track {
-  width: 2.9rem;
-  height: 1.62rem;
-  border-radius: 999px;
-  border: 1px solid var(--rule);
-  background: hsl(var(--muted));
+  width: 3rem;
+  height: 1.7rem;
+  border-radius: 0.54rem;
+  border: 1px solid hsl(var(--foreground) / 0.14);
+  background: hsl(var(--background));
   padding: 0.12rem;
   display: inline-flex;
   align-items: center;
 }
 
 .theme-switch-thumb {
-  width: 1.28rem;
-  height: 1.28rem;
-  border-radius: 999px;
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 0.34rem;
+  border: 1px solid hsl(var(--foreground) / 0.16);
+  background: hsl(var(--background));
+  color: var(--ink-faint);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: transform var(--t-base) var(--ease-main), background var(--t-fast) var(--ease-soft);
+  transition: transform var(--t-base) var(--ease-main), background var(--t-fast) var(--ease-soft), color var(--t-fast) var(--ease-soft), border-color var(--t-fast) var(--ease-soft);
 }
 
 .theme-switch.is-dark .theme-switch-thumb {
-  transform: translateX(1.24rem);
-  background: hsl(var(--accent));
-  color: hsl(var(--accent-foreground));
+  transform: translateX(1.18rem);
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
 }
 
 .theme-switch-icon {
-  width: 0.72rem;
-  height: 0.72rem;
+  width: 0.74rem;
+  height: 0.74rem;
+}
+
+.utility-header {
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+.utility-header-inner {
+  min-height: 3.5rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  padding-block: 0.55rem;
+}
+
+.utility-header-slot {
+  min-height: 1px;
+}
+
+.utility-header-controls {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  pointer-events: auto;
+}
+
+@media (max-width: 760px) {
+  .utility-header-inner {
+    min-height: 3rem;
+    padding-block: 0.4rem;
+  }
+
+  .theme-switch {
+    padding: 0.28rem;
+  }
+
+  .theme-switch-track {
+    width: 2.72rem;
+    height: 1.54rem;
+  }
+
+  .theme-switch-thumb {
+    width: 1.08rem;
+    height: 1.08rem;
+  }
+
+  .theme-switch.is-dark .theme-switch-thumb {
+    transform: translateX(1.04rem);
+  }
+
+  .theme-switch-icon {
+    width: 0.68rem;
+    height: 0.68rem;
+  }
 }
 
 .home-shell,

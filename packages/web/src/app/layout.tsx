@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 
+import { ThemeToggle } from '../components/theme-toggle';
 import { SyncHintBeacon } from '../components/sync-hint-beacon';
 import { QueryProvider } from '../components/providers/query-provider';
 import { fetchSiteSettings } from '../lib/api';
@@ -102,6 +103,14 @@ export default async function RootLayout({ children }) {
             <body>
                 <script dangerouslySetInnerHTML={{ __html: themeScript }} />
                 <QueryProvider>
+                    <header className="utility-header" aria-label="Utility controls">
+                        <div className="shell utility-header-inner">
+                            <div className="utility-header-slot" />
+                            <div className="utility-header-slot utility-header-controls">
+                                <ThemeToggle />
+                            </div>
+                        </div>
+                    </header>
                     {children}
                     {followLinks.length > 0 ? (
                         <footer className="global-footer">

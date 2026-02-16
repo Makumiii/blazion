@@ -29,26 +29,15 @@ export function ThemeToggle() {
         >
             <span className="theme-switch-track" aria-hidden="true">
                 <span className="theme-switch-thumb">
-                    {dark ? (
-                        <svg viewBox="0 0 24 24" className="theme-switch-icon" fill="none" stroke="currentColor">
-                            <path
-                                d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 1 0 9.79 9.79Z"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
-                    ) : (
-                        <svg viewBox="0 0 24 24" className="theme-switch-icon" fill="none" stroke="currentColor">
-                            <circle cx="12" cy="12" r="4" strokeWidth="1.8" />
-                            <path
-                                d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
-                    )}
+                    <svg viewBox="0 0 24 24" className="theme-switch-icon" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="3.4" fill="currentColor" stroke="none" />
+                        <path
+                            d="M12 2.8v2.1M12 19.1v2.1M3.8 12h2.1M18.1 12h2.1M5.9 5.9l1.5 1.5M16.6 16.6l1.5 1.5M5.9 18.1l1.5-1.5M16.6 7.4l1.5-1.5"
+                            strokeWidth="1.9"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                    </svg>
                 </span>
             </span>
         </button>
