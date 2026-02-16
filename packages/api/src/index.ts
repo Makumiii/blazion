@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { rateLimiter } from 'hono-rate-limiter';
 import { Cron } from 'croner';
+import { timingSafeEqual } from 'node:crypto';
 import { postsQuerySchema } from '@blazion/shared';
 import type { BlogPost } from '@blazion/shared';
 
@@ -18,7 +19,14 @@ db.migrate();
 
 const corsOrigins = parseCsv(process.env.CORS_ORIGINS);
 const rateLimitEnabled = parseBooleanEnv(process.env.API_RATE_LIMIT_ENABLED, true);
-const syncAdminApiKeyEnabled = parseBooleanEnv(process.env.SYNC_ADMIN_API_KEY_ENABLED, false);
+const syncAdminApiKeyEnabled = parseBooleanEnv(
+    process.env.SYNC_ADMIN_API_KEY_ENABLED,
+    process.env.NODE_ENV === 'production',
+);
+const syncHintEnabled = parseBooleanEnv(
+    process.env.SYNC_HINT_ENABLED,
+    process.env.NODE_ENV !== 'production',
+);
 const syncAdminApiKey = process.env.SYNC_ADMIN_API_KEY?.trim() ?? '';
 const defaultRateWindowMs = parseIntEnv(process.env.API_RATE_LIMIT_WINDOW_MS, 60_000);
 const defaultRateLimit = parseIntEnv(process.env.API_RATE_LIMIT_MAX, 60);
@@ -97,6 +105,13 @@ if (syncService !== null) {
 
 // Middleware
 app.use('*', logger());
+app.use('*', async (c, next) => {
+    c.header('X-Content-Type-Options', 'nosniff');
+    c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+    c.header('X-Frame-Options', 'DENY');
+    c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    await next();
+});
 app.use(
     '*',
     cors({
@@ -284,6 +299,16 @@ app.post('/api/sync', async (c) => {
 });
 
 app.post('/api/sync/hint', (c) => {
+    if (!syncHintEnabled) {
+        return c.json(
+            {
+                status: 'disabled',
+                message: 'Sync hint endpoint is disabled.',
+            },
+            403,
+        );
+    }
+
     if (syncService === null) {
         return c.json(
             {
@@ -398,6 +423,7 @@ app.get('/api/sync/status', (c) => {
         lastImageRefreshError,
         imageUrlRefreshBufferSeconds,
         imageUrlRefreshCooldownSeconds,
+        syncHintEnabled,
         nextHintAllowedAt: toIso(nextAllowedAtMs),
         hintCooldownRemainingMs: Math.max(0, nextAllowedAtMs - now),
     });
@@ -1116,7 +1142,7 @@ function assertSyncAuthorization(
     }
 
     const provided = extractApiKey(c.req.header('x-api-key'), c.req.header('authorization'));
-    if (!provided || provided !== syncAdminApiKey) {
+    if (!provided || !secureCompare(provided, syncAdminApiKey)) {
         return c.json(
             {
                 error: 'Unauthorized',
@@ -1136,4 +1162,17 @@ function extractApiKey(directHeader: string | undefined, authHeader: string | un
         return authHeader.slice(7).trim();
     }
     return '';
+}
+
+function secureCompare(left: string, right: string): boolean {
+    const leftBuffer = Buffer.from(left);
+    const rightBuffer = Buffer.from(right);
+    const size = Math.max(leftBuffer.length, rightBuffer.length, 1);
+    const paddedLeft = Buffer.alloc(size);
+    const paddedRight = Buffer.alloc(size);
+    leftBuffer.copy(paddedLeft);
+    rightBuffer.copy(paddedRight);
+
+    const equal = timingSafeEqual(paddedLeft, paddedRight);
+    return equal && leftBuffer.length === rightBuffer.length;
 }

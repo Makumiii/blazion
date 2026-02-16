@@ -55,9 +55,13 @@ export class DatabaseService {
     public constructor(dbPath: string) {
         const resolvedPath = path.resolve(dbPath);
         const dir = path.dirname(resolvedPath);
-        fs.mkdirSync(dir, { recursive: true });
+        fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+        this.trySetPermissions(dir, 0o700);
+        this.warnIfPathLooksPublic(resolvedPath);
+
         this.db = new Database(resolvedPath, { create: true });
         this.db.exec('PRAGMA journal_mode = WAL');
+        this.trySetPermissions(resolvedPath, 0o600);
     }
 
     public migrate(): void {
@@ -318,6 +322,25 @@ export class DatabaseService {
         const hasColumn = columns.some((column) => column.name === columnName);
         if (!hasColumn) {
             this.db.exec(`ALTER TABLE sync_runs ADD COLUMN ${columnName} ${definition}`);
+        }
+    }
+
+    private trySetPermissions(targetPath: string, mode: number): void {
+        try {
+            fs.chmodSync(targetPath, mode);
+        } catch (error) {
+            console.warn(`Could not enforce secure permissions on ${targetPath}`, error);
+        }
+    }
+
+    private warnIfPathLooksPublic(resolvedPath: string): void {
+        const normalized = resolvedPath.toLowerCase();
+        const flaggedSegments = ['/public/', '/.next/', '/dist/', '/coverage/'];
+        if (flaggedSegments.some((segment) => normalized.includes(segment))) {
+            console.warn(
+                `Database path appears to be inside a public/build-like directory: ${resolvedPath}. ` +
+                    'Use a private path (for example ./data/blog.db).',
+            );
         }
     }
 }

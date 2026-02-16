@@ -8,10 +8,12 @@ dist/
 .turbo/
 
 # Environment
-.env
-.env.local
-.env.*.local
+.env*
+!.env.example
 blazion.config.ts
+blazion.config.js
+blazion.config.mjs
+blazion.config.cjs
 
 # Database
 *.db

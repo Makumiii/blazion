@@ -5,12 +5,28 @@ import { useEffect } from 'react';
 const SESSION_HINT_SENT_KEY = 'blazion-sync-hint-sent';
 const SESSION_ID_KEY = 'blazion-sync-session-id';
 
+function isSyncHintEnabled() {
+    const configured = process.env.NEXT_PUBLIC_SYNC_HINT_ENABLED;
+    if (configured !== undefined) {
+        return configured.trim().toLowerCase() === 'true';
+    }
+    return process.env.NODE_ENV !== 'production';
+}
+
 function apiBaseUrl() {
-    return (
+    const configured =
         process.env.NEXT_PUBLIC_BLAZION_API_URL ??
-        process.env.BLAZION_API_URL ??
-        'http://localhost:3000'
-    );
+        process.env.BLAZION_API_URL;
+    if (configured && configured.trim().length > 0) {
+        return configured.trim();
+    }
+    if (process.env.NODE_ENV === 'production') {
+        console.error(
+            'Missing API base URL in production. Set NEXT_PUBLIC_BLAZION_API_URL (or BLAZION_API_URL).',
+        );
+        return null;
+    }
+    return 'http://localhost:3000';
 }
 
 function getOrCreateSessionId() {
@@ -30,6 +46,10 @@ function getOrCreateSessionId() {
 
 export function SyncHintBeacon() {
     useEffect(() => {
+        if (!isSyncHintEnabled()) {
+            return;
+        }
+
         try {
             if (sessionStorage.getItem(SESSION_HINT_SENT_KEY) === '1') {
                 return;
@@ -41,8 +61,12 @@ export function SyncHintBeacon() {
 
         const controller = new AbortController();
         const sessionId = getOrCreateSessionId();
+        const baseUrl = apiBaseUrl();
+        if (!baseUrl) {
+            return () => controller.abort();
+        }
 
-        fetch(`${apiBaseUrl()}/api/sync/hint`, {
+        fetch(`${baseUrl}/api/sync/hint`, {
             method: 'POST',
             headers: {
                 'x-sync-session': sessionId,

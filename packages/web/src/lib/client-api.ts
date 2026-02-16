@@ -36,7 +36,16 @@ export type PostsQueryInput = {
 };
 
 function apiBaseUrl(): string {
-    return process.env.NEXT_PUBLIC_BLAZION_API_URL ?? process.env.BLAZION_API_URL ?? 'http://localhost:3000';
+    const configured = process.env.NEXT_PUBLIC_BLAZION_API_URL ?? process.env.BLAZION_API_URL;
+    if (configured && configured.trim().length > 0) {
+        return configured.trim();
+    }
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error(
+            'Missing API base URL in production. Set NEXT_PUBLIC_BLAZION_API_URL (or BLAZION_API_URL).',
+        );
+    }
+    return 'http://localhost:3000';
 }
 
 async function getJson<T>(path: string): Promise<T> {
