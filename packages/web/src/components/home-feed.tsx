@@ -31,27 +31,25 @@ type TabValue = 'all' | 'featured' | `segment:${string}`;
 
 function StorySkeletonList() {
     return (
-        <section className="ledger-list" aria-label="Loading stories">
-            <div className="ledger-head">
-                <span>/ Date</span>
-                <span>/ Name</span>
-                <span>/ Author</span>
-                <span aria-hidden="true" />
-            </div>
-            {Array.from({ length: 4 }).map((_, index) => (
-                <article key={index} className="ledger-row">
-                    <Skeleton className="h-4 w-20" />
-                    <div className="skeleton-lines">
+            <section className="ledger-list" aria-label="Loading stories">
+                <div className="ledger-head">
+                    <span>/ Date</span>
+                    <span>/ Name</span>
+                    <span>/ Author</span>
+                </div>
+                {Array.from({ length: 4 }).map((_, index) => (
+                    <article key={index} className="ledger-row">
+                        <Skeleton className="h-4 w-20" />
+                        <div className="skeleton-lines">
                         <Skeleton className="h-3 w-28" />
-                        <Skeleton className="h-8 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
-                    </div>
-                    <Skeleton className="h-3 w-24 justify-self-end" />
-                    <Skeleton className="h-5 w-4" />
-                </article>
-            ))}
-        </section>
-    );
+                            <Skeleton className="h-8 w-full" />
+                            <Skeleton className="h-4 w-3/4" />
+                        </div>
+                        <Skeleton className="h-3 w-24 justify-self-end" />
+                    </article>
+                ))}
+            </section>
+        );
 }
 
 export function HomeFeed() {
@@ -197,7 +195,6 @@ export function HomeFeed() {
                         <span>/ Date</span>
                         <span>/ Name</span>
                         <span>/ Author</span>
-                        <span aria-hidden="true" />
                     </div>
                     {posts.map((post) => (
                         <article
@@ -227,7 +224,6 @@ export function HomeFeed() {
                                 <p className="ledger-summary">{post.summary ?? 'No summary yet.'}</p>
                             </div>
                             <p className="ledger-author">BY {(post.author ?? 'Editorial Desk').toUpperCase()}</p>
-                            <span className="ledger-more" aria-hidden="true">↗</span>
                         </article>
                     ))}
                 </section>
