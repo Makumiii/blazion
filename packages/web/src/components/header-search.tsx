@@ -172,7 +172,7 @@ export function HeaderSearch() {
                     type="search"
                     name="q"
                     className="header-search-input"
-                    placeholder="Search articles…"
+                    placeholder="Search by title, tag, or author"
                     aria-label="Search articles"
                     value={query}
                     autoComplete="off"

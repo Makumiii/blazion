@@ -333,12 +333,22 @@
   border: 1px solid var(--rule);
   border-radius: 0.9rem;
   background: hsl(var(--background)) !important;
+  background-color: hsl(var(--background)) !important;
   opacity: 1;
   isolation: isolate;
   backdrop-filter: none;
+  contain: paint;
   box-shadow: 0 24px 52px hsl(var(--foreground) / 0.16);
   overflow: hidden;
   animation: reveal-up var(--t-base) var(--ease-main) both;
+}
+
+.header-search-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: hsl(var(--background));
+  z-index: -1;
 }
 
 .header-search-state {
