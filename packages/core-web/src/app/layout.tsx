@@ -1,9 +1,10 @@
 import './globals.css';
 import type { Metadata } from 'next';
 
-import { ThemeToggle } from '../components/theme-toggle';
+import { ThemeToggle } from '@blazion/pack-blog-web/components/theme-toggle';
 import { SyncHintBeacon } from '../components/sync-hint-beacon';
 import { QueryProvider } from '../components/providers/query-provider';
+import { ThemeProvider } from '../components/providers/theme-provider';
 import { fetchSiteSettings } from '../lib/api';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3001';
@@ -24,16 +25,6 @@ export const metadata: Metadata = {
         description: 'Operational intelligence and strategic writing for product organizations.',
     },
 };
-
-const themeScript = `
-(() => {
-  try {
-    const stored = localStorage.getItem('blog-theme');
-    const dark = stored === 'dark';
-    document.documentElement.classList.toggle('dark', dark);
-  } catch {}
-})();
-`;
 
 const FOLLOW_ORDER = [
     'linkedin',
@@ -99,39 +90,40 @@ export default async function RootLayout({ children }) {
     });
 
     return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
             <body>
-                <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-                <QueryProvider>
-                    <header className="utility-header" aria-label="Utility controls">
-                        <div className="shell utility-header-inner">
-                            <div className="utility-header-slot" />
-                            <div className="utility-header-slot utility-header-controls">
-                                <ThemeToggle />
-                            </div>
-                        </div>
-                    </header>
-                    {children}
-                    {followLinks.length > 0 ? (
-                        <footer className="global-footer">
-                            <div className="shell footer-inner">
-                                <div className="footer-links">
-                                    {followLinks.map((item) => (
-                                        <a
-                                            key={item.key}
-                                            href={item.href}
-                                            target={item.external ? '_blank' : undefined}
-                                            rel={item.external ? 'noreferrer noopener' : undefined}
-                                        >
-                                            {item.label}
-                                        </a>
-                                    ))}
+                <ThemeProvider>
+                    <QueryProvider>
+                        <header className="utility-header" aria-label="Utility controls">
+                            <div className="shell utility-header-inner">
+                                <div className="utility-header-slot" />
+                                <div className="utility-header-slot utility-header-controls">
+                                    <ThemeToggle />
                                 </div>
                             </div>
-                        </footer>
-                    ) : null}
-                    <SyncHintBeacon />
-                </QueryProvider>
+                        </header>
+                        {children}
+                        {followLinks.length > 0 ? (
+                            <footer className="global-footer">
+                                <div className="shell footer-inner">
+                                    <div className="footer-links">
+                                        {followLinks.map((item) => (
+                                            <a
+                                                key={item.key}
+                                                href={item.href}
+                                                target={item.external ? '_blank' : undefined}
+                                                rel={item.external ? 'noreferrer noopener' : undefined}
+                                            >
+                                                {item.label}
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
+                            </footer>
+                        ) : null}
+                        <SyncHintBeacon />
+                    </QueryProvider>
+                </ThemeProvider>
             </body>
         </html>
     );

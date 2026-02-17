@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import type { ReactElement } from 'react';
+import { Button } from './ui/button';
 
 const ORDER = [
     'linkedin',
@@ -200,14 +201,15 @@ export function SocialDock({ socials: _socials }: { socials: Socials }) {
             <p className="social-dock-title" aria-hidden="true">
                 Share
             </p>
-            <button
+            <Button
                 type="button"
+                variant="unstyled"
                 className="social-dock-toggle"
                 onClick={() => setCollapsed((value) => !value)}
                 aria-label={collapsed ? 'Show share actions' : 'Hide share actions'}
             >
                 {collapsed ? '‹' : '›'}
-            </button>
+            </Button>
 
             <div className="social-dock-panel" aria-hidden={collapsed}>
                 {shareLinks.map((item) => (
@@ -224,8 +226,9 @@ export function SocialDock({ socials: _socials }: { socials: Socials }) {
                         <span className="social-dock-text">{item.label}</span>
                     </a>
                 ))}
-                <button
+                <Button
                     type="button"
+                    variant="unstyled"
                     className={`social-dock-link${copied ? ' is-success' : ''}`}
                     onClick={copyCurrentUrl}
                     aria-label="Copy post URL"
@@ -240,7 +243,7 @@ export function SocialDock({ socials: _socials }: { socials: Socials }) {
                         </svg>
                     </span>
                     <span className="social-dock-text">{copied ? 'Copied' : 'Copy link'}</span>
-                </button>
+                </Button>
             </div>
         </aside>
     );

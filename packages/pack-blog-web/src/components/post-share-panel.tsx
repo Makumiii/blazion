@@ -2,6 +2,7 @@
 
 import type { ReactElement } from 'react';
 import { useState } from 'react';
+import { Button } from './ui/button';
 
 interface PostSharePanelProps {
     postUrl: string;
@@ -127,14 +128,15 @@ export function PostSharePanel({ postUrl, socials = {} }: PostSharePanelProps) {
         <section className="digest-share" aria-label="Share article">
             <p className="digest-kicker">/ Share</p>
             <div className="digest-share-links">
-                <button
+                <Button
                     type="button"
+                    variant="unstyled"
                     onClick={copyLink}
                     aria-label={copied ? 'Link copied' : 'Copy link'}
                     data-tooltip={copied ? 'Copied' : 'Copy link'}
                 >
                     {iconFor('copy')}
-                </button>
+                </Button>
                 {socialLinks.map((item) => (
                     <a
                         key={item.key}

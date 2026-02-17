@@ -3,6 +3,8 @@ import type { Metadata } from 'next';
 import { PaginationNav } from '../components/pagination-nav';
 import { PostCard } from '../components/post-card';
 import { StateBlock } from '../components/state-block';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 import { listPosts } from '../lib/api/client';
 
 interface SearchPageProps {
@@ -26,8 +28,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 <h1>Search posts</h1>
                 <form action="/search" method="get" className="search-form">
                     <label htmlFor="q">Keyword</label>
-                    <input id="q" name="q" placeholder="Design systems, API, Notion..." />
-                    <button type="submit">Search</button>
+                    <Input id="q" name="q" placeholder="Design systems, API, Notion..." />
+                    <Button type="submit" variant="unstyled">Search</Button>
                 </form>
             </section>
         );
@@ -46,8 +48,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                     <h1>Search posts</h1>
                     <form action="/search" method="get" className="search-form">
                         <label htmlFor="q">Keyword</label>
-                        <input id="q" name="q" defaultValue={q} />
-                        <button type="submit">Search</button>
+                        <Input id="q" name="q" defaultValue={q} />
+                        <Button type="submit" variant="unstyled">Search</Button>
                     </form>
                 </section>
 

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 
 import { Card } from './ui/card';
+import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Skeleton } from './ui/skeleton';
 import { fetchSearchIndexClient } from '../lib/client-api';
@@ -204,8 +205,9 @@ export function HeaderSearch() {
                         <ul className="header-search-list">
                             {results.map((post, index) => (
                                 <li key={post.id}>
-                                    <button
+                                    <Button
                                         type="button"
+                                        variant="unstyled"
                                         className={`header-search-item${index === activeIndex ? ' is-active' : ''}`}
                                         onMouseEnter={() => setActiveIndex(index)}
                                         onClick={() => navigateToSlug(post.slug)}
@@ -216,7 +218,7 @@ export function HeaderSearch() {
                                             {post.readTimeMinutes ? ` · ${post.readTimeMinutes} min read` : ''}
                                             {post.segment ? ` · ${post.segment}` : ''}
                                         </span>
-                                    </button>
+                                    </Button>
                                 </li>
                             ))}
                         </ul>

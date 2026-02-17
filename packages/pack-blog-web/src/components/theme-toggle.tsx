@@ -1,24 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTheme } from 'next-themes';
+import { Button } from './ui/button';
 
 export function ThemeToggle() {
-    const [dark, setDark] = useState(false);
+    const { resolvedTheme, setTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        const hasDark = document.documentElement.classList.contains('dark');
-        setDark(hasDark);
+        setMounted(true);
     }, []);
 
+    const dark = mounted ? resolvedTheme === 'dark' : false;
+
     const onToggle = () => {
-        const nextDark = !dark;
-        setDark(nextDark);
-        document.documentElement.classList.toggle('dark', nextDark);
-        localStorage.setItem('blog-theme', nextDark ? 'dark' : 'light');
+        setTheme(dark ? 'light' : 'dark');
     };
 
     return (
-        <button
+        <Button
+            variant="unstyled"
             className={`theme-switch ${dark ? 'is-dark' : 'is-light'}`}
             onClick={onToggle}
             type="button"
@@ -40,6 +42,6 @@ export function ThemeToggle() {
                     </svg>
                 </span>
             </span>
-        </button>
+        </Button>
     );
 }

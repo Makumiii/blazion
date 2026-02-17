@@ -157,15 +157,16 @@ export function HomeFeed() {
                                 const isActive = activeTab === option.value;
                                 return (
                                     <div key={option.value} className="filter-piece">
-                                        <button
+                                        <Button
                                             type="button"
+                                            variant="unstyled"
                                             role="tab"
                                             aria-selected={isActive}
                                             className={`filter-option${isActive ? ' is-active' : ''}`}
                                             onClick={() => onTabChange(option.value)}
                                         >
                                             <span>{option.label}</span>
-                                        </button>
+                                        </Button>
                                         {index < filterOptions.length - 1 ? (
                                             <span className="filter-separator" aria-hidden="true">
                                                 /
