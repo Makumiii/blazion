@@ -36,5 +36,5 @@ Use this checklist to create showcase posts quickly in Notion:
 - `Public Share`: disabled
 
 Notes:
-- If `SYNC_PUBLIC_ONLY=true`, Post 3 will be skipped.
-- If `SYNC_PUBLIC_ONLY=false`, Post 3 will be served with `renderMode="blocks"`.
+- If `sync.publicOnly=true`, Post 3 will be skipped.
+- If `sync.publicOnly=false`, Post 3 will be served with `renderMode="blocks"`.

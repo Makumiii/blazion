@@ -39,8 +39,8 @@ Blazion syncs content from a Notion database to a local SQLite database, exposes
 ```
 blogEngine/
 ├── packages/
-│   ├── api/          # @blazion/api - Hono.js backend (Bun runtime)
-│   ├── web/          # @blazion/web - Next.js SSR frontend
+│   ├── core-api/          # @blazion/core-api - Hono.js backend (Bun runtime)
+│   ├── core-web/     # @blazion/core-web - Next.js SSR frontend
 │   └── shared/       # @blazion/shared - Shared types and utilities
 ├── TASKS.md          # Implementation progress tracker
 ├── SPEC.md           # This file
@@ -55,7 +55,7 @@ blogEngine/
 
 ## Tech Stack
 
-### Backend (@blazion/api)
+### Backend (@blazion/core-api)
 | Technology | Purpose |
 |------------|---------|
 | Bun | JavaScript runtime |
@@ -66,7 +66,7 @@ blogEngine/
 | Croner | Cron job scheduling |
 | Zod | Schema validation |
 
-### Frontend (@blazion/web)
+### Frontend (@blazion/core-web)
 | Technology | Purpose |
 |------------|---------|
 | Next.js 14+ | React framework with SSR/SSG |
@@ -110,18 +110,18 @@ Base URL: `http://localhost:3000`
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/health` | Health check |
-| GET | `/api/posts` | List all published posts (paginated) |
-| GET | `/api/posts?page=1&limit=10` | Pagination |
-| GET | `/api/posts?tags=tech,design` | Filter by tags |
-| GET | `/api/posts?author=john` | Filter by author |
-| GET | `/api/posts/:slug` | Get single post with metadata |
-| GET | `/api/posts/:slug/content` | Get recordMap for rendering |
+| GET | `/api/blog/posts` | List all published posts (paginated) |
+| GET | `/api/blog/posts?page=1&limit=10` | Pagination |
+| GET | `/api/blog/posts?tags=tech,design` | Filter by tags |
+| GET | `/api/blog/posts?author=john` | Filter by author |
+| GET | `/api/blog/posts/:slug` | Get single post with metadata |
+| GET | `/api/blog/posts/:slug/content` | Get recordMap for rendering |
 | POST | `/api/sync` | Manually trigger sync (dev only) |
 
 ### Response Shapes
 
 ```typescript
-// GET /api/posts
+// GET /api/blog/posts
 {
   data: Post[],
   pagination: {
@@ -132,12 +132,12 @@ Base URL: `http://localhost:3000`
   }
 }
 
-// GET /api/posts/:slug
+// GET /api/blog/posts/:slug
 {
   data: Post
 }
 
-// GET /api/posts/:slug/content
+// GET /api/blog/posts/:slug/content
 {
   recordMap: RecordMap,  // For react-notion-x
   renderMode: 'recordMap' | 'blocks'
@@ -155,7 +155,6 @@ import { defineConfig } from '@blazion/shared';
 export default defineConfig({
   notion: {
     integrationKey: process.env.NOTION_API_KEY!,
-    databaseId: process.env.NOTION_DATABASE_ID!,
   },
   cron: {
     syncInterval: '*/30 * * * *',      // Every 30 minutes
@@ -178,7 +177,7 @@ export default defineConfig({
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `notion.integrationKey` | string | required | Notion integration API key |
-| `notion.databaseId` | string | required | Notion database ID |
+| `pack database binding` | internal | setup-managed | Notion database ID linked internally after setup |
 | `cron.syncInterval` | string | `*/30 * * * *` | Cron expression for sync |
 | `cron.imageRefreshInterval` | string | `0 * * * *` | Cron for image URL refresh |
 | `sync.publicOnly` | boolean | `true` | Only sync public pages |
@@ -261,8 +260,8 @@ cp .env.example .env
 # Add your NOTION_API_KEY
 
 # 3. Create Notion database
-pnpm run setup --page-id=<your-notion-page-id>
-# Copy the output database ID to .env
+pnpm --filter @blazion/core-api run setup -- --pack=blog --page-id=<your-notion-page-id>
+# Database binding is stored internally per pack.
 
 # 4. Start development
 pnpm dev
@@ -291,7 +290,7 @@ pnpm typecheck    # TypeScript check
 pnpm test         # Run tests
 
 # Package-specific
-pnpm --filter @blazion/api dev
-pnpm --filter @blazion/web dev
-pnpm --filter @blazion/api setup --page-id=<id>
+pnpm --filter @blazion/core-api dev
+pnpm --filter @blazion/core-web dev
+pnpm --filter @blazion/core-api run setup -- --pack=blog --page-id=<id>
 ```

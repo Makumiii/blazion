@@ -16,7 +16,6 @@ export const socialLinksSchema = z.object({
 export const blogEngineConfigSchema = z.object({
     notion: z.object({
         integrationKey: z.string().min(1),
-        databaseId: z.string().min(1),
     }),
     cron: z.object({
         syncInterval: z.string().min(1),

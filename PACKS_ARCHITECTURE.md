@@ -6,7 +6,6 @@ Make Blazion modular so a user can enable only the packs they need (for example 
 ## Current Baseline (Implemented)
 1. Runtime pack selection
 - Config supports `packs` array in `blazion.config.ts`.
-- Env override supported via `BLAZION_PACKS=blog,docs`.
 - Unknown packs are detected and skipped with warnings.
 
 2. Pack namespaced API contracts
@@ -16,7 +15,7 @@ Make Blazion modular so a user can enable only the packs they need (for example 
   - `/api/blog/posts/:slug`
   - `/api/blog/posts/:slug/recommendations`
   - `/api/blog/posts/:slug/content`
-- Backward-compatible aliases remain at `/api/posts*`.
+- No legacy aliases are retained; pack APIs are namespace-only (`/api/<pack>/*`).
 
 3. Pack-targeted sync orchestration
 - Sync endpoints accept optional `?pack=<name>`.

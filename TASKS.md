@@ -17,7 +17,7 @@
 
 ### Deliverables
 - [x] Turborepo monorepo initialized with pnpm
-- [x] Three packages: `@blazion/shared`, `@blazion/api`, `@blazion/web`
+- [x] Three packages: `@blazion/shared`, `@blazion/core-api`, `@blazion/core-web`
 - [x] TypeScript configured with path aliases
 - [x] ESLint + Prettier configured
 - [x] Environment variables template (.env.example)
@@ -34,8 +34,8 @@ pnpm typecheck         # TypeScript compiles
 
 ### Success Criteria
 - [x] `packages/shared/dist/` exists after build
-- [x] `packages/api/dist/` exists after build  
-- [x] `packages/web/.next/` exists after build
+- [x] `packages/core-api/dist/` exists after build  
+- [x] `packages/core-web/.next/` exists after build
 - [x] No TypeScript errors
 
 ---
@@ -71,18 +71,18 @@ pnpm --filter @blazion/shared build  # Compiles
 - [x] Hono.js server running on Bun
 - [x] Notion client wrapper (official + unofficial)
 - [x] SQLite database with migrations
-- [x] CLI setup command (`pnpm run setup --page-id=xxx`)
+- [x] CLI setup command (`pnpm run setup -- --pack=blog --page-id=xxx`)
 - [x] Basic sync service (Notion → SQLite)
 - [x] Health endpoint (`GET /api/health`)
 
 ### Verification
 ```bash
 # 1. Setup creates database in Notion
-pnpm --filter @blazion/api setup --page-id=<test-page-id>
+pnpm --filter @blazion/core-api run setup -- --pack=blog --page-id=<test-page-id>
 # Expected: Outputs new database ID
 
 # 2. Server starts
-pnpm --filter @blazion/api dev
+pnpm --filter @blazion/core-api dev
 # Expected: "Server running on http://localhost:3000"
 
 # 3. Health check works
@@ -93,7 +93,7 @@ curl http://localhost:3000/api/health
 curl -X POST http://localhost:3000/api/sync
 # Expected: {"synced":0,"skipped":0,"errors":0}
 
-# Note: Steps 1 and 4 require valid NOTION_API_KEY + NOTION_DATABASE_ID.
+# Note: Steps 1 and 4 require a valid NOTION_API_KEY and running setup to link the pack database internally.
 ```
 
 ### Success Criteria
@@ -108,10 +108,10 @@ curl -X POST http://localhost:3000/api/sync
 **Goal:** Complete REST API with automatic syncing
 
 ### Deliverables
-- [x] `GET /api/posts` - List posts with pagination
-- [x] `GET /api/posts?tags=x&author=y` - Filtering
-- [x] `GET /api/posts/:slug` - Single post metadata
-- [x] `GET /api/posts/:slug/content` - RecordMap for rendering
+- [x] `GET /api/blog/posts` - List posts with pagination
+- [x] `GET /api/blog/posts?tags=x&author=y` - Filtering
+- [x] `GET /api/blog/posts/:slug` - Single post metadata
+- [x] `GET /api/blog/posts/:slug/content` - RecordMap for rendering
 - [x] Cron job: Sync at configured interval
 - [x] Cron job: Image URL refresh (hourly)
 - [x] Public/private page detection
@@ -125,15 +125,15 @@ curl -X POST http://localhost:3000/api/sync
 # Expected: {"synced":1,"skipped":0,"errors":0}
 
 # 3. List posts
-curl http://localhost:3000/api/posts
+curl http://localhost:3000/api/blog/posts
 # Expected: {"data":[{...post}],"pagination":{...}}
 
 # 4. Get single post
-curl http://localhost:3000/api/posts/my-test-slug
+curl http://localhost:3000/api/blog/posts/my-test-slug
 # Expected: {"data":{...full post with metadata}}
 
 # 5. Get content for rendering
-curl http://localhost:3000/api/posts/my-test-slug/content
+curl http://localhost:3000/api/blog/posts/my-test-slug/content
 # Expected: {"recordMap":{...},"renderMode":"recordMap"}
 
 # 6. Verify cron is scheduled
@@ -166,11 +166,11 @@ curl http://localhost:3000/api/posts/my-test-slug/content
 ### Verification
 ```bash
 # 1. Dev server runs
-pnpm --filter @blazion/web dev
+pnpm --filter @blazion/core-web dev
 # Expected: "Ready on http://localhost:3001"
 
 # 2. Build succeeds (SSR pages pre-render)
-pnpm --filter @blazion/web build
+pnpm --filter @blazion/core-web build
 # Expected: No errors, pages listed in output
 
 # 3. Browser tests

@@ -3,8 +3,8 @@
 A modular Notion-to-API-to-frontend platform. Today it ships with a `blog` pack (schema, sync rules, API contract, and frontend template) and is structured to add more packs (docs/wiki/etc.).
 
 ## Stack
-- `@blazion/api`: Bun runtime, Hono, Notion sync, SQLite
-- `@blazion/web`: Next.js App Router frontend
+- `@blazion/core-api`: Bun runtime, Hono, Notion sync, SQLite
+- `@blazion/core-web`: Next.js App Router frontend
 - `@blazion/shared`: shared types/config/validators + pack config contract
 
 ## Quick Start
@@ -16,14 +16,18 @@ pnpm install
 ```bash
 cp .env.example .env
 ```
-3. Set your Notion API key in `.env`:
+3. Create app config file:
+```bash
+cp blazion.config.example.ts blazion.config.ts
+```
+4. Set your Notion API key in `.env`:
 - `NOTION_API_KEY`
 
-4. Create Notion database from a parent page:
+5. Create Notion database from a parent page:
 ```bash
-pnpm --filter @blazion/api run setup -- --page-id=<your-notion-page-id>
+pnpm --filter @blazion/core-api run setup -- --pack=blog --page-id=<your-notion-page-id>
 ```
-- Copy returned value to `NOTION_DATABASE_ID` in `.env`
+- Blazion stores the created database id internally for the `blog` pack.
 
 5. Start development:
 ```bash
@@ -51,9 +55,12 @@ pnpm dev
 3. In Notion, open the parent page (or database) you want to use and share it with your integration.
 4. Run setup to create the blog database under that page:
 ```bash
-pnpm --filter @blazion/api run setup -- --page-id=<your-notion-page-id>
+pnpm --filter @blazion/core-api run setup -- --pack=blog --page-id=<your-notion-page-id>
 ```
-5. Copy the returned database id into `.env` as `NOTION_DATABASE_ID`.
+5. Setup links the created database internally. No `NOTION_DATABASE_ID` env var is needed.
+6. Setup is idempotent: if a pack is already linked, it skips creating a second DB.
+   - Relink to existing DB: `pnpm --filter @blazion/core-api run setup -- --pack=blog --database-id=<id>`
+   - Force create a new DB: `pnpm --filter @blazion/core-api run setup -- --pack=blog --page-id=<page-id> --force-create=true`
 
 Official Notion docs:
 - https://developers.notion.com/docs/create-a-notion-integration
@@ -61,7 +68,7 @@ Official Notion docs:
 
 ## Environment Variables
 - `NOTION_API_KEY`: Notion integration key
-- `NOTION_DATABASE_ID`: blog database id
+- Notion database id is managed internally per pack in local metadata after `setup`.
 - `PORT`: API port (default `3000`)
 - `BLAZION_API_URL` or `NEXT_PUBLIC_BLAZION_API_URL`: web-to-api base URL
   - development default: `http://localhost:3000`
@@ -73,9 +80,6 @@ Official Notion docs:
 - `NEXT_PUBLIC_GISCUS_CATEGORY_ID`: category id from giscus.app setup
 - `NEXT_PUBLIC_GISCUS_MAPPING`: mapping strategy (default `pathname`)
 - `DATABASE_PATH`: SQLite DB path (default `./data/blog.db`)
-- `BLAZION_PACKS`: comma-separated enabled packs override (example: `blog`)
-- `SYNC_INTERVAL`: cron for content sync (default `*/30 * * * *`)
-- `IMAGE_REFRESH_INTERVAL`: cron for image refresh (default `0 * * * *`)
 - `SYNC_HINT_ENABLED`: enable public `/api/sync/hint` endpoint (default `true` in non-production, `false` in production)
 - `IMAGE_URL_REFRESH_BUFFER_SECONDS`: proactive buffer before signed image URL expiry (default `300`)
 - `IMAGE_URL_REFRESH_COOLDOWN_SECONDS`: minimum gap between request-triggered image refresh runs (default `60`)
@@ -87,13 +91,12 @@ Official Notion docs:
 - `RECOMMENDATION_WEIGHT_FEATURED`: score boost for featured posts (default `8`)
 - `RECOMMENDATION_WEIGHT_RECENCY`: max recency bonus inside window (default `6`)
 - `RECOMMENDATION_RECENCY_WINDOW_DAYS`: days window for recency bonus decay (default `30`)
-- `SYNC_PUBLIC_ONLY`: if `true`, skips non-public pages
 - `CORS_ORIGINS`: comma-separated allowlist (e.g. `http://localhost:3001,https://example.com`)
 - `API_RATE_LIMIT_ENABLED`: enable global/route rate limiting (default `true`)
 - `API_RATE_LIMIT_WINDOW_MS`: limiter window in ms (default `60000`)
 - `API_RATE_LIMIT_MAX`: global requests per window per IP (default `60`)
-- `API_RATE_LIMIT_POSTS_MAX`: `/api/posts` and `/api/blog/posts` requests per window per IP (default `120`)
-- `API_RATE_LIMIT_CONTENT_MAX`: `/api/posts/:slug/content` and `/api/blog/posts/:slug/content` requests per window per IP (default `30`)
+- `API_RATE_LIMIT_POSTS_MAX`: `/api/blog/posts` requests per window per IP (default `120`)
+- `API_RATE_LIMIT_CONTENT_MAX`: `/api/blog/posts/:slug/content` requests per window per IP (default `30`)
 - `API_RATE_LIMIT_SYNC_MAX`: sync route requests per window per IP (default `2`)
 - `SYNC_ADMIN_API_KEY_ENABLED`: require API key for manual sync routes (defaults to `true` in production, `false` otherwise)
 - `SYNC_ADMIN_API_KEY`: key accepted via `x-api-key` or `Authorization: Bearer ...`
@@ -102,13 +105,13 @@ Official Notion docs:
 - `SOCIAL_EMAIL`, `SOCIAL_PHONENUMBER`, `SOCIAL_FACEBOOK`, `SOCIAL_GITHUB`
 
 ## Configuration File Example
-`blazion.config.ts` is loaded by the API at runtime and merged with env-driven overrides.
+`blazion.config.ts` is the source of truth for app behavior (packs, sync behavior, cron cadence, socials, site text).
+Environment variables are used for secrets and deployment/infrastructure values.
 
 ```ts
 const config = {
     notion: {
         integrationKey: process.env.NOTION_API_KEY ?? 'missing',
-        databaseId: process.env.NOTION_DATABASE_ID ?? 'missing',
     },
     cron: {
         syncInterval: '*/30 * * * *',
@@ -148,8 +151,8 @@ export default config;
 The API applies both generic and route-specific rate limits.
 
 - Global limiter on `/api/*`
-- Higher limits on read routes (`/api/posts`)
-- Tighter limits on heavy routes (`/api/posts/:slug/content`)
+- Higher limits on read routes (`/api/blog/posts`)
+- Tighter limits on heavy routes (`/api/blog/posts/:slug/content`)
 - Very tight limits on manual sync routes
 - Additional strict protections on `/api/sync/hint` (cooldown + in-progress lock + per-IP/session windows) when enabled
 
@@ -189,10 +192,6 @@ curl -X POST http://localhost:3000/api/sync \
 - `POST /api/sync/hint` (rate-limited async sync trigger, disabled by default in production)
 - `GET /api/sync/status`
 - `POST /api/sync/images` (`?pack=blog` optional)
-- `GET /api/posts` (legacy alias for blog pack)
-- `GET /api/posts/:slug` (legacy alias for blog pack)
-- `GET /api/posts/:slug/recommendations?limit=3` (legacy alias for blog pack)
-- `GET /api/posts/:slug/content` (legacy alias for blog pack)
 - `GET /api/blog/posts` (pack namespace route)
 - `GET /api/blog/posts/:slug`
 - `GET /api/blog/posts/:slug/recommendations?limit=3`
@@ -200,7 +199,7 @@ curl -X POST http://localhost:3000/api/sync \
 - `GET /api/site` (public site settings, currently `socials`)
 
 ## Pack Architecture
-- Core runtime reads enabled packs from `blazion.config.ts` (`packs`) or `BLAZION_PACKS`.
+- Core runtime reads enabled packs from `blazion.config.ts` (`packs`).
 - Each pack owns:
   - Notion schema assumptions + validation
   - sync mapping rules
@@ -208,13 +207,11 @@ curl -X POST http://localhost:3000/api/sync \
   - frontend template compatibility contract
 - Current built-in pack:
   - `blog`
-- Legacy aliases are kept for backward compatibility:
-  - `blog` routes are also available under `/api/posts*`.
 
 ## Installation Model
 - Contributor mode (this monorepo): contains core + all packs.
 - Product-user mode (recommended): should install only required packs via starter/preset CLI workflow.
-- Short-term (current repo state): enable only needed packs via config/env (`packs` in `blazion.config.ts` or `BLAZION_PACKS=blog`).
+- Short-term (current repo state): enable only needed packs via `packs` in `blazion.config.ts`.
 - Long-term: packs publish independently (for example `@blazion/pack-blog`) with compatible core version ranges.
 
 ## Notion Database Properties
@@ -234,7 +231,7 @@ curl -X POST http://localhost:3000/api/sync \
 
 ## Sync Behavior
 - Only `status=ready` posts are exposed by API routes.
-- If `SYNC_PUBLIC_ONLY=true`, private posts are skipped during sync.
+- If `sync.publicOnly=true` in `blazion.config.ts`, private posts are skipped during sync.
 - Public posts return `renderMode=recordMap`.
 - Private posts return `renderMode=blocks` with block fallback payload.
 - Site visits trigger a best-effort `POST /api/sync/hint` once per browser session only when both:
@@ -286,11 +283,11 @@ pnpm test:smoke:api
 
 Package-specific:
 ```bash
-pnpm --filter @blazion/api dev
-pnpm --filter @blazion/web dev
-pnpm --filter @blazion/api run setup -- --page-id=<id>
-pnpm --filter @blazion/api test
-pnpm --filter @blazion/api test:smoke
+pnpm --filter @blazion/core-api dev
+pnpm --filter @blazion/core-web dev
+pnpm --filter @blazion/core-api run setup -- --pack=blog --page-id=<id>
+pnpm --filter @blazion/core-api test
+pnpm --filter @blazion/core-api test:smoke
 ```
 
 ## Testing Strategy
@@ -299,5 +296,5 @@ pnpm --filter @blazion/api test:smoke
   - pack resolution logic
 - API integration/smoke tests:
   - starts real API process with isolated SQLite db seed
-  - verifies pack loading (`enabledPacks`), blog namespace + legacy alias routes, auth behavior, sync status paths
+  - verifies pack loading (`enabledPacks`), blog namespace routes, auth behavior, sync status paths
 - Keep assertions focused on contracts and invariants (status codes, required fields) to stay robust across UI/content changes.

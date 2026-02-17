@@ -30,8 +30,11 @@ importers:
         specifier: ^5.3.0
         version: 5.9.3
 
-  packages/api:
+  packages/core-api:
     dependencies:
+      '@blazion/pack-blog-api':
+        specifier: workspace:*
+        version: link:../pack-blog-api
       '@blazion/shared':
         specifier: workspace:*
         version: link:../shared
@@ -56,32 +59,78 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.3.8
+        version: 1.3.9
       typescript:
         specifier: ^5.3.0
         version: 5.9.3
 
-  packages/shared:
+  packages/core-web:
     dependencies:
-      zod:
-        specifier: ^3.22.0
-        version: 3.25.76
-    devDependencies:
-      typescript:
-        specifier: ^5.3.0
-        version: 5.9.3
-
-  packages/web:
-    dependencies:
-      '@blazion/shared':
+      '@blazion/pack-blog-web':
         specifier: workspace:*
-        version: link:../shared
+        version: link:../pack-blog-web
       '@fontsource-variable/mona-sans':
         specifier: ^5.2.8
         version: 5.2.8
       '@fontsource/source-serif-4':
         specifier: ^5.2.9
         version: 5.2.9
+      '@tanstack/react-query':
+        specifier: ^5.0.0
+        version: 5.90.20(react@18.3.1)
+      next:
+        specifier: ^14.1.0
+        version: 14.2.35(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+    devDependencies:
+      '@types/react':
+        specifier: ^18.2.0
+        version: 18.3.28
+      '@types/react-dom':
+        specifier: ^18.2.0
+        version: 18.3.7(@types/react@18.3.28)
+      autoprefixer:
+        specifier: ^10.4.0
+        version: 10.4.24(postcss@8.5.6)
+      postcss:
+        specifier: ^8.4.0
+        version: 8.5.6
+      tailwindcss:
+        specifier: ^3.4.0
+        version: 3.4.19
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/pack-blog-api:
+    dependencies:
+      '@blazion/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@notionhq/client':
+        specifier: ^2.2.0
+        version: 2.3.0
+      hono:
+        specifier: ^4.0.0
+        version: 4.11.8
+    devDependencies:
+      '@types/bun':
+        specifier: latest
+        version: 1.3.9
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/pack-blog-web:
+    dependencies:
+      '@blazion/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@radix-ui/react-separator':
         specifier: ^1.1.8
         version: 1.1.8(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -123,7 +172,7 @@ importers:
         version: 3.4.1
       tailwindcss-animate:
         specifier: ^1.0.7
-        version: 1.0.7(tailwindcss@3.4.19)
+        version: 1.0.7
     devDependencies:
       '@types/react':
         specifier: ^18.2.0
@@ -131,15 +180,16 @@ importers:
       '@types/react-dom':
         specifier: ^18.2.0
         version: 18.3.7(@types/react@18.3.28)
-      autoprefixer:
-        specifier: ^10.4.0
-        version: 10.4.24(postcss@8.5.6)
-      postcss:
-        specifier: ^8.4.0
-        version: 8.5.6
-      tailwindcss:
-        specifier: ^3.4.0
-        version: 3.4.19
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/shared:
+    dependencies:
+      zod:
+        specifier: ^3.22.0
+        version: 3.25.76
+    devDependencies:
       typescript:
         specifier: ^5.3.0
         version: 5.9.3
@@ -496,8 +546,8 @@ packages:
     peerDependencies:
       react: ^18 || ^19
 
-  '@types/bun@1.3.8':
-    resolution: {integrity: sha512-3LvWJ2q5GerAXYxO2mffLTqOzEu5qnhEAlh48Vnu8WQfnmSwbgagjGZV6BoHKJztENYEDn6QmVd949W4uESRJA==}
+  '@types/bun@1.3.9':
+    resolution: {integrity: sha512-KQ571yULOdWJiMH+RIWIOZ7B2RXQGpL1YQrBtLIV3FqDcCu6FsbFUBwhdKUlCKUpS3PJDsHlJ1QKlpxoVR+xtw==}
 
   '@types/cacheable-request@6.0.3':
     resolution: {integrity: sha512-IQ3EbTzGxIigb1I3qPZc1rWJnH0BmSKv5QYTalEwweFvyBDLSAe24zP0le/hyi7ecGfZVlIVAg4BZqb8WBwKqw==}
@@ -766,8 +816,8 @@ packages:
   buffer-from@1.1.2:
     resolution: {integrity: sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==}
 
-  bun-types@1.3.8:
-    resolution: {integrity: sha512-fL99nxdOWvV4LqjmC+8Q9kW3M4QTtTR1eePs94v5ctGqU8OeceWrSUaRw3JYb7tU3FkMIAjkueehrHPPPGKi5Q==}
+  bun-types@1.3.9:
+    resolution: {integrity: sha512-+UBWWOakIP4Tswh0Bt0QD0alpTY8cb5hvgiYeWCMet9YukHbzuruIEeXC2D7nMJPB12kbh8C7XJykSexEqGKJg==}
 
   busboy@1.6.0:
     resolution: {integrity: sha512-8SFQbg/0hQ9xy3UNTB0YEnsNBbWfhf7RtnzpL7TkBiTBRfrQ9Fxcnz7VJsleJpyp6rVLvXiuORqjlHi5q+PYuA==}
@@ -2368,9 +2418,9 @@ snapshots:
       '@tanstack/query-core': 5.90.20
       react: 18.3.1
 
-  '@types/bun@1.3.8':
+  '@types/bun@1.3.9':
     dependencies:
-      bun-types: 1.3.8
+      bun-types: 1.3.9
 
   '@types/cacheable-request@6.0.3':
     dependencies:
@@ -2701,7 +2751,7 @@ snapshots:
 
   buffer-from@1.1.2: {}
 
-  bun-types@1.3.8:
+  bun-types@1.3.9:
     dependencies:
       '@types/node': 20.19.32
 
@@ -3771,9 +3821,7 @@ snapshots:
 
   tailwind-merge@3.4.1: {}
 
-  tailwindcss-animate@1.0.7(tailwindcss@3.4.19):
-    dependencies:
-      tailwindcss: 3.4.19
+  tailwindcss-animate@1.0.7: {}
 
   tailwindcss@3.4.19:
     dependencies:

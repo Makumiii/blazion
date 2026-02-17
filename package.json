@@ -9,8 +9,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "test:api": "pnpm --filter @blazion/api test",
-    "test:smoke:api": "pnpm --filter @blazion/api test:smoke",
+    "test:api": "pnpm --filter @blazion/core-api test",
+    "test:smoke:api": "pnpm --filter @blazion/core-api test:smoke",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {

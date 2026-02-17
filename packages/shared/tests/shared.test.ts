@@ -1,7 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+    defineApiPackManifest,
     defineConfig,
+    defineSetupPackManifest,
+    defineSyncPackManifest,
+    defineWebPackManifest,
     formatDate,
     normalizeTags,
     normalizePackConfig,
@@ -38,7 +42,6 @@ describe('shared package', () => {
         const config = defineConfig({
             notion: {
                 integrationKey: 'test-key',
-                databaseId: 'db-id',
             },
         });
 
@@ -59,7 +62,6 @@ describe('shared package', () => {
         const config = defineConfig({
             notion: {
                 integrationKey: 'test-key',
-                databaseId: 'db-id',
             },
             packs: [
                 { name: 'blog', enabled: true },
@@ -75,7 +77,6 @@ describe('shared package', () => {
             defineConfig({
                 notion: {
                     integrationKey: 'test-key',
-                    databaseId: 'db-id',
                 },
                 packs: [{ name: 'blog' }, { name: 'blog' }],
             }),
@@ -100,5 +101,59 @@ describe('shared package', () => {
             enabled: true,
             options: {},
         });
+    });
+
+    test('defineApiPackManifest enforces manifest shape and marks api capability', () => {
+        const manifest = defineApiPackManifest({
+            name: 'blog',
+            version: '1.0.0',
+            description: 'Blog API pack',
+            registerApiRoutes: () => {},
+        });
+
+        expect(manifest.capabilities?.api).toBe(true);
+    });
+
+    test('defineSyncPackManifest marks sync capability and keeps explicit flags', () => {
+        const manifest = defineSyncPackManifest({
+            name: 'blog',
+            version: '1.0.0',
+            description: 'Blog sync pack',
+            capabilities: {
+                search: true,
+            },
+            runSync: async () => ({
+                synced: 0,
+                skipped: 0,
+                errors: 0,
+                removed: 0,
+            }),
+        });
+
+        expect(manifest.capabilities?.sync).toBe(true);
+        expect(manifest.capabilities?.search).toBe(true);
+    });
+
+    test('defineSetupPackManifest rejects invalid semver', () => {
+        expect(() =>
+            defineSetupPackManifest({
+                name: 'blog',
+                version: '1',
+                description: 'Blog setup',
+                runSetup: async () => {},
+            }),
+        ).toThrow('Version must be valid semver');
+    });
+
+    test('defineWebPackManifest validates navigation items', () => {
+        expect(() =>
+            defineWebPackManifest({
+                name: 'blog',
+                version: '1.0.0',
+                description: 'Blog web',
+                registerWebRoutes: () => {},
+                navigation: [{ label: '', href: '/posts' }],
+            }),
+        ).toThrow();
     });
 });
