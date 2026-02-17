@@ -309,6 +309,8 @@
 }
 
 .header-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
   border: 0 !important;
   box-shadow: none !important;
   background: transparent !important;

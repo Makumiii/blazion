@@ -78,5 +78,5 @@ export async function fetchPostsClient(input: PostsQueryInput): Promise<PostsRes
 }
 
 export async function fetchSearchIndexClient(limit = 300): Promise<SearchIndexResponse> {
-    return getJson<SearchIndexResponse>(`/api/search-index?limit=${limit}`);
+    return getJson<SearchIndexResponse>(`/api/blog/search-index?limit=${limit}`);
 }
