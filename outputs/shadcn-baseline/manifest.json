@@ -1,0 +1,34 @@
+{
+  "baseUrl": "http://localhost:3001",
+  "viewport": {
+    "width": 1512,
+    "height": 982
+  },
+  "routes": [
+    {
+      "route": "/",
+      "name": "home"
+    },
+    {
+      "route": "/posts",
+      "name": "posts"
+    },
+    {
+      "route": "/posts/hello-world",
+      "name": "posts_hello-world"
+    },
+    {
+      "route": "/search?q=test",
+      "name": "search_q_test"
+    },
+    {
+      "route": "/tags/Tech",
+      "name": "tags_Tech"
+    }
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "maxDiffRatio": 0.005
+}

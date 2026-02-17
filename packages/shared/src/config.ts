@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { normalizePackConfig, packConfigSchema, type PackConfig, type PackConfigInput } from './packs';
 
 export const socialLinksSchema = z.object({
     linkedin: z.string().url().optional(),
@@ -12,10 +13,20 @@ export const socialLinksSchema = z.object({
     github: z.string().url().optional(),
 });
 
+export const shareProviderSchema = z.enum([
+    'x',
+    'whatsapp',
+    'facebook',
+    'linkedin',
+    'instagram',
+    'telegram',
+    'reddit',
+    'email',
+]);
+
 export const blogEngineConfigSchema = z.object({
     notion: z.object({
         integrationKey: z.string().min(1),
-        databaseId: z.string().min(1),
     }),
     cron: z.object({
         syncInterval: z.string().min(1),
@@ -31,6 +42,13 @@ export const blogEngineConfigSchema = z.object({
         port: z.number().int().min(1).max(65535),
     }),
     socials: socialLinksSchema,
+    share: z.object({
+        providers: z.array(shareProviderSchema),
+    }),
+    site: z.object({
+        homeHeader: z.string().min(1),
+    }),
+    packs: z.array(packConfigSchema).min(1),
 });
 
 export type BlogEngineConfig = z.infer<typeof blogEngineConfigSchema>;
@@ -42,6 +60,9 @@ export interface BlogEngineConfigInput {
     database?: Partial<BlogEngineConfig['database']>;
     server?: Partial<BlogEngineConfig['server']>;
     socials?: Partial<BlogEngineConfig['socials']>;
+    share?: Partial<BlogEngineConfig['share']>;
+    site?: Partial<BlogEngineConfig['site']>;
+    packs?: PackConfigInput[];
 }
 
 export const defaultBlogEngineConfig: Omit<BlogEngineConfig, 'notion'> = {
@@ -59,9 +80,23 @@ export const defaultBlogEngineConfig: Omit<BlogEngineConfig, 'notion'> = {
         port: 3000,
     },
     socials: {},
+    share: {
+        providers: ['x', 'whatsapp', 'facebook', 'linkedin'],
+    },
+    site: {
+        homeHeader: 'Stories from your Notion publication',
+    },
+    packs: [
+        {
+            name: 'blog',
+            enabled: true,
+            options: {},
+        },
+    ],
 };
 
 export function defineConfig(config: BlogEngineConfigInput): BlogEngineConfig {
+    const resolvedPacks = resolvePackConfig(config.packs ?? defaultBlogEngineConfig.packs);
     const merged: BlogEngineConfig = {
         notion: config.notion,
         cron: {
@@ -84,7 +119,28 @@ export function defineConfig(config: BlogEngineConfigInput): BlogEngineConfig {
             ...defaultBlogEngineConfig.socials,
             ...config.socials,
         },
+        share: {
+            ...defaultBlogEngineConfig.share,
+            ...config.share,
+        },
+        site: {
+            ...defaultBlogEngineConfig.site,
+            ...config.site,
+        },
+        packs: resolvedPacks,
     };
 
     return blogEngineConfigSchema.parse(merged);
+}
+
+function resolvePackConfig(input: PackConfigInput[]): PackConfig[] {
+    const normalized = input.map((pack) => normalizePackConfig(pack));
+    const seen = new Set<string>();
+    for (const pack of normalized) {
+        if (seen.has(pack.name)) {
+            throw new Error(`Duplicate pack entry "${pack.name}" in configuration.`);
+        }
+        seen.add(pack.name);
+    }
+    return normalized;
 }
