@@ -149,7 +149,7 @@ export default async function PostDetailPage({ params }) {
                             ) : null}
                         </dl>
 
-                        <PostSharePanel postUrl={postUrl} socials={siteSettings.socials} />
+                        <PostSharePanel postUrl={postUrl} providers={siteSettings.share?.providers} />
                     </aside>
 
                     <section className="digest-article" aria-label="Article body">

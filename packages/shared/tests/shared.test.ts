@@ -49,6 +49,7 @@ describe('shared package', () => {
         expect(config.server.port).toBe(3000);
         expect(config.database.path).toBe('./data/blog.db');
         expect(config.socials).toEqual({});
+        expect(config.share.providers).toEqual(['x', 'whatsapp', 'facebook', 'linkedin']);
         expect(config.packs).toEqual([
             {
                 name: 'blog',

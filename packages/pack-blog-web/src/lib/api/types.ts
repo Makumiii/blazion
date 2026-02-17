@@ -55,6 +55,9 @@ export interface SiteResponse {
             facebook?: string;
             github?: string;
         };
+        share: {
+            providers: Array<'x' | 'whatsapp' | 'facebook' | 'linkedin' | 'instagram' | 'telegram' | 'reddit' | 'email'>;
+        };
         site: {
             homeHeader: string;
         };

@@ -13,6 +13,17 @@ export const socialLinksSchema = z.object({
     github: z.string().url().optional(),
 });
 
+export const shareProviderSchema = z.enum([
+    'x',
+    'whatsapp',
+    'facebook',
+    'linkedin',
+    'instagram',
+    'telegram',
+    'reddit',
+    'email',
+]);
+
 export const blogEngineConfigSchema = z.object({
     notion: z.object({
         integrationKey: z.string().min(1),
@@ -31,6 +42,9 @@ export const blogEngineConfigSchema = z.object({
         port: z.number().int().min(1).max(65535),
     }),
     socials: socialLinksSchema,
+    share: z.object({
+        providers: z.array(shareProviderSchema),
+    }),
     site: z.object({
         homeHeader: z.string().min(1),
     }),
@@ -46,6 +60,7 @@ export interface BlogEngineConfigInput {
     database?: Partial<BlogEngineConfig['database']>;
     server?: Partial<BlogEngineConfig['server']>;
     socials?: Partial<BlogEngineConfig['socials']>;
+    share?: Partial<BlogEngineConfig['share']>;
     site?: Partial<BlogEngineConfig['site']>;
     packs?: PackConfigInput[];
 }
@@ -65,6 +80,9 @@ export const defaultBlogEngineConfig: Omit<BlogEngineConfig, 'notion'> = {
         port: 3000,
     },
     socials: {},
+    share: {
+        providers: ['x', 'whatsapp', 'facebook', 'linkedin'],
+    },
     site: {
         homeHeader: 'Stories from your Notion publication',
     },
@@ -100,6 +118,10 @@ export function defineConfig(config: BlogEngineConfigInput): BlogEngineConfig {
         socials: {
             ...defaultBlogEngineConfig.socials,
             ...config.socials,
+        },
+        share: {
+            ...defaultBlogEngineConfig.share,
+            ...config.share,
         },
         site: {
             ...defaultBlogEngineConfig.site,

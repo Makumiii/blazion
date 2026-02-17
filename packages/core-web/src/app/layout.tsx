@@ -1,7 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 
-import { ThemeToggle } from '@blazion/pack-blog-web/components/theme-toggle';
+import { ThemeToggle } from '../components/theme-toggle';
 import { SyncHintBeacon } from '../components/sync-hint-beacon';
 import { QueryProvider } from '../components/providers/query-provider';
 import { ThemeProvider } from '../components/providers/theme-provider';

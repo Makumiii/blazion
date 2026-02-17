@@ -25,6 +25,9 @@ const config = {
         facebook: process.env.SOCIAL_FACEBOOK,
         github: process.env.SOCIAL_GITHUB,
     },
+    share: {
+        providers: ['x', 'whatsapp', 'facebook', 'linkedin'],
+    },
     site: {
         homeHeader: 'Everything Technology',
     },

@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     "./routes/*": "./src/routes/*.tsx",
-    "./components/*": "./src/components/*.tsx"
+    "./components/*": "./src/components/*.tsx",
+    "./components/ui/*": "./src/components/ui/*.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

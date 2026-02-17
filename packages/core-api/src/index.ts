@@ -245,6 +245,7 @@ app.get('/api/site', (c) => {
     return c.json({
         data: {
             socials: runtime.config.socials,
+            share: runtime.config.share,
             site: runtime.config.site,
         },
     });

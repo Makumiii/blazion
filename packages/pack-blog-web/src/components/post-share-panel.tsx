@@ -6,17 +6,23 @@ import { Button } from './ui/button';
 
 interface PostSharePanelProps {
     postUrl: string;
-    socials?: Record<string, string | undefined>;
+    providers?: string[];
 }
 
-function normalizeUrl(value: string): string {
-    if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('mailto:') || value.startsWith('tel:')) {
-        return value;
-    }
-    return `https://${value}`;
-}
+type ShareProvider = 'x' | 'whatsapp' | 'facebook' | 'linkedin' | 'instagram' | 'telegram' | 'reddit' | 'email';
 
-function iconFor(key: string): ReactElement {
+const SUPPORTED_PROVIDERS: ShareProvider[] = [
+    'x',
+    'whatsapp',
+    'facebook',
+    'linkedin',
+    'instagram',
+    'telegram',
+    'reddit',
+    'email',
+];
+
+function iconFor(key: ShareProvider | 'copy'): ReactElement {
     switch (key) {
         case 'linkedin':
             return (
@@ -33,6 +39,15 @@ function iconFor(key: string): ReactElement {
                     <path
                         fill="currentColor"
                         d="M18.9 3h2.9l-6.4 7.3L23 21h-6l-4.7-6.2L7 21H4l6.8-7.8L2 3h6.2l4.2 5.7L18.9 3Zm-1 16h1.7L7.3 4.8H5.5L17.9 19Z"
+                    />
+                </svg>
+            );
+        case 'whatsapp':
+            return (
+                <svg viewBox="0 0 24 24" className="digest-share-icon" aria-hidden="true">
+                    <path
+                        fill="currentColor"
+                        d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.7-1.2A9 9 0 1 0 12 3Zm5.3 12.7c-.2.6-1.2 1.1-1.7 1.2-.5 0-1 .2-3.2-.7-2.7-1.2-4.4-4-4.5-4.2-.1-.2-1.1-1.4-1.1-2.7 0-1.3.7-1.9 1-2.2.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5.2.6.8 1.9.8 2.1.1.2.1.4 0 .6-.1.2-.2.3-.4.5-.2.2-.3.4-.5.5-.2.2-.3.4-.1.8.2.3 1 1.7 2.2 2.7 1.5 1.3 2.7 1.7 3.1 1.9.4.2.6.1.8-.1.3-.3 1-1.1 1.2-1.4.2-.3.5-.3.8-.2.3.1 2 .9 2.3 1.1.3.1.5.2.6.4.1.3.1.8-.1 1.4Z"
                     />
                 </svg>
             );
@@ -54,25 +69,6 @@ function iconFor(key: string): ReactElement {
                     />
                 </svg>
             );
-        case 'github':
-            return (
-                <svg viewBox="0 0 24 24" className="digest-share-icon" aria-hidden="true">
-                    <path
-                        fill="currentColor"
-                        d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.4-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.6 1 1.6 1 .9 1.5 2.4 1.1 2.9.9.1-.6.4-1.1.7-1.3-2.3-.3-4.8-1.2-4.8-5.2 0-1.1.4-2 1-2.8-.1-.3-.4-1.3.1-2.7 0 0 .9-.3 2.8 1a9.5 9.5 0 0 1 5.1 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.7.8 1 1.7 1 2.8 0 4-2.5 4.9-4.9 5.2.4.3.8 1 .8 2v3c0 .3.2.6.7.5A10 10 0 0 0 12 2Z"
-                    />
-                </svg>
-            );
-        case 'linktree':
-        case 'linkedtree':
-            return (
-                <svg viewBox="0 0 24 24" className="digest-share-icon" aria-hidden="true">
-                    <path
-                        fill="currentColor"
-                        d="M11 2h2v4l2.6-2.6 1.4 1.4L14.4 7.4H18v2h-3.6l2.6 2.6-1.4 1.4L13 10.8V15h-2v-4.2l-2.6 2.6-1.4-1.4L9.6 9.4H6v-2h3.6L7 4.8l1.4-1.4L11 6V2Zm0 13h2v7h-2v-7Z"
-                    />
-                </svg>
-            );
         case 'email':
             return (
                 <svg viewBox="0 0 24 24" className="digest-share-icon" aria-hidden="true">
@@ -82,45 +78,69 @@ function iconFor(key: string): ReactElement {
                     />
                 </svg>
             );
-        case 'phonenumber':
-            return (
-                <svg viewBox="0 0 24 24" className="digest-share-icon" aria-hidden="true">
-                    <path
-                        fill="currentColor"
-                        d="M6.6 3h3.1c.5 0 .9.3 1 .7l.8 3.6c.1.4 0 .8-.3 1L9.5 10a12.5 12.5 0 0 0 4.5 4.5l1.7-1.7c.3-.3.7-.4 1-.3l3.6.8c.4.1.7.5.7 1v3.1c0 .6-.4 1-1 1C10 22 2 14 2 4c0-.6.4-1 1-1h3.6Z"
-                    />
-                </svg>
-            );
         default:
             return (
                 <svg viewBox="0 0 24 24" className="digest-share-icon" aria-hidden="true">
                     <path
                         fill="currentColor"
-                        d="M10.6 13.4a1 1 0 0 1 0-1.4l3.8-3.8a3 3 0 1 1 4.2 4.2l-2.2 2.2a3 3 0 0 1-4.2 0 1 1 0 1 1 1.4-1.4 1 1 0 0 0 1.4 0l2.2-2.2a1 1 0 0 0-1.4-1.4l-3.8 3.8a1 1 0 0 1-1.4 0Zm2.8-2.8a1 1 0 0 1 0 1.4l-3.8 3.8a3 3 0 0 1-4.2-4.2l2.2-2.2a3 3 0 0 1 4.2 0 1 1 0 1 1-1.4 1.4 1 1 0 0 0-1.4 0l-2.2 2.2a1 1 0 0 0 1.4 1.4l3.8-3.8a1 1 0 0 1 1.4 0Z"
+                        d="M9 8V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2v-2h2V6h-7v2H9Zm-5 3a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9Zm2 0v9h7v-9H6Z"
                     />
                 </svg>
             );
     }
 }
 
-export function PostSharePanel({ postUrl, socials = {} }: PostSharePanelProps) {
-    const [copied, setCopied] = useState(false);
+function normalizedProviders(input: string[] | undefined): ShareProvider[] {
+    const raw = Array.isArray(input) && input.length > 0 ? input : ['x', 'whatsapp', 'facebook', 'linkedin'];
+    const result: ShareProvider[] = [];
+    for (const item of raw) {
+        if (!SUPPORTED_PROVIDERS.includes(item as ShareProvider)) {
+            continue;
+        }
+        const provider = item as ShareProvider;
+        if (!result.includes(provider)) {
+            result.push(provider);
+        }
+    }
+    return result;
+}
 
-    const socialLinks = Object.entries(socials)
-        .filter(([, value]) => typeof value === 'string' && value.trim().length > 0)
-        .map(([key, value]) => ({
-            key,
-            label: key === 'x' ? 'Twitter/X' : key === 'linkedin' ? 'LinkedIn' : key,
-            href: normalizeUrl(value!.trim()),
-        }));
+function buildShareHref(provider: ShareProvider, postUrl: string): string | null {
+    const encodedUrl = encodeURIComponent(postUrl);
+    const encodedText = encodeURIComponent(`Check this out: ${postUrl}`);
+    switch (provider) {
+        case 'x':
+            return `https://x.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`;
+        case 'whatsapp':
+            return `https://wa.me/?text=${encodedText}`;
+        case 'facebook':
+            return `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+        case 'linkedin':
+            return `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+        case 'telegram':
+            return `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`;
+        case 'reddit':
+            return `https://www.reddit.com/submit?url=${encodedUrl}`;
+        case 'email':
+            return `mailto:?subject=${encodeURIComponent('Interesting post')}&body=${encodedText}`;
+        case 'instagram':
+            return null;
+        default:
+            return null;
+    }
+}
 
-    async function copyLink() {
+export function PostSharePanel({ postUrl, providers }: PostSharePanelProps) {
+    const [copiedKey, setCopiedKey] = useState<string | null>(null);
+    const enabledProviders = normalizedProviders(providers);
+
+    async function copyLink(key: string) {
         try {
             await navigator.clipboard.writeText(postUrl);
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 1800);
+            setCopiedKey(key);
+            window.setTimeout(() => setCopiedKey((current) => (current === key ? null : current)), 1800);
         } catch {
-            setCopied(false);
+            setCopiedKey(null);
         }
     }
 
@@ -131,24 +151,45 @@ export function PostSharePanel({ postUrl, socials = {} }: PostSharePanelProps) {
                 <Button
                     type="button"
                     variant="unstyled"
-                    onClick={copyLink}
-                    aria-label={copied ? 'Link copied' : 'Copy link'}
-                    data-tooltip={copied ? 'Copied' : 'Copy link'}
+                    onClick={() => copyLink('copy')}
+                    aria-label={copiedKey === 'copy' ? 'Link copied' : 'Copy link'}
+                    data-tooltip={copiedKey === 'copy' ? 'Copied' : 'Copy link'}
                 >
                     {iconFor('copy')}
                 </Button>
-                {socialLinks.map((item) => (
-                    <a
-                        key={item.key}
-                        href={item.href}
-                        target={item.href.startsWith('mailto:') || item.href.startsWith('tel:') ? undefined : '_blank'}
-                        rel={item.href.startsWith('mailto:') || item.href.startsWith('tel:') ? undefined : 'noreferrer noopener'}
-                        aria-label={item.label}
-                        data-tooltip={item.label}
-                    >
-                        {iconFor(item.key)}
-                    </a>
-                ))}
+                {enabledProviders.map((provider) => {
+                    const href = buildShareHref(provider, postUrl);
+                    if (provider === 'instagram') {
+                        const copied = copiedKey === provider;
+                        return (
+                            <Button
+                                key={provider}
+                                type="button"
+                                variant="unstyled"
+                                onClick={() => copyLink(provider)}
+                                aria-label={copied ? 'Copied for Instagram' : 'Share to Instagram (copy link)'}
+                                data-tooltip={copied ? 'Copied for Instagram' : 'Instagram'}
+                            >
+                                {iconFor(provider)}
+                            </Button>
+                        );
+                    }
+                    if (!href) {
+                        return null;
+                    }
+                    return (
+                        <a
+                            key={provider}
+                            href={href}
+                            target={href.startsWith('mailto:') ? undefined : '_blank'}
+                            rel={href.startsWith('mailto:') ? undefined : 'noreferrer noopener'}
+                            aria-label={provider === 'x' ? 'Twitter/X' : provider === 'linkedin' ? 'LinkedIn' : provider}
+                            data-tooltip={provider === 'x' ? 'Twitter/X' : provider === 'linkedin' ? 'LinkedIn' : provider}
+                        >
+                            {iconFor(provider)}
+                        </a>
+                    );
+                })}
             </div>
         </section>
     );

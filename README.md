@@ -105,7 +105,7 @@ Official Notion docs:
 - `SOCIAL_EMAIL`, `SOCIAL_PHONENUMBER`, `SOCIAL_FACEBOOK`, `SOCIAL_GITHUB`
 
 ## Configuration File Example
-`blazion.config.ts` is the source of truth for app behavior (packs, sync behavior, cron cadence, socials, site text).
+`blazion.config.ts` is the source of truth for app behavior (packs, sync behavior, cron cadence, socials, share providers, site text).
 Environment variables are used for secrets and deployment/infrastructure values.
 
 ```ts
@@ -135,6 +135,9 @@ const config = {
         phonenumber: process.env.SOCIAL_PHONENUMBER,
         facebook: process.env.SOCIAL_FACEBOOK,
         github: process.env.SOCIAL_GITHUB,
+    },
+    share: {
+        providers: ['x', 'whatsapp', 'facebook', 'linkedin'],
     },
     packs: [
         {
@@ -196,7 +199,7 @@ curl -X POST http://localhost:3000/api/sync \
 - `GET /api/blog/posts/:slug`
 - `GET /api/blog/posts/:slug/recommendations?limit=3`
 - `GET /api/blog/posts/:slug/content`
-- `GET /api/site` (public site settings, currently `socials`)
+- `GET /api/site` (public site settings, currently `socials`, `share`, `site`)
 
 ## Pack Architecture
 - Core runtime reads enabled packs from `blazion.config.ts` (`packs`).

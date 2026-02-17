@@ -120,6 +120,11 @@ export async function fetchSiteSettings(options) {
     const data = await safeJson(url, options);
     return {
         socials: data?.data?.socials ?? {},
+        share: {
+            providers: Array.isArray(data?.data?.share?.providers)
+                ? data.data.share.providers
+                : ['x', 'whatsapp', 'facebook', 'linkedin'],
+        },
         site: {
             homeHeader:
                 data?.data?.site?.homeHeader ??
