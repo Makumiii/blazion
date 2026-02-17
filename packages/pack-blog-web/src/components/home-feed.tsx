@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useRef } from 'react';
 
 import { HeaderSearch } from './header-search';
+import { HomeFeedSkeleton } from './home-feed-skeleton';
 import { Button } from './ui/button';
-import { Skeleton } from './ui/skeleton';
 import { usePostsQuery } from '../hooks/use-posts-query';
 
 function ledgerDate(value: string | null) {
@@ -28,29 +28,6 @@ function parsePositiveInt(value: string | null, fallback: number) {
 }
 
 type TabValue = 'all' | 'featured' | `segment:${string}`;
-
-function StorySkeletonList() {
-    return (
-            <section className="ledger-list" aria-label="Loading stories">
-                <div className="ledger-head">
-                    <span>/ Date</span>
-                    <span>/ Name</span>
-                    <span>/ Author</span>
-                </div>
-                {Array.from({ length: 4 }).map((_, index) => (
-                    <article key={index} className="ledger-row">
-                        <Skeleton className="h-4 w-20" />
-                        <div className="skeleton-lines">
-                        <Skeleton className="h-3 w-28" />
-                            <Skeleton className="h-8 w-full" />
-                            <Skeleton className="h-4 w-3/4" />
-                        </div>
-                        <Skeleton className="h-3 w-24 justify-self-end" />
-                    </article>
-                ))}
-            </section>
-        );
-}
 
 export function HomeFeed() {
     const router = useRouter();
@@ -188,7 +165,7 @@ export function HomeFeed() {
                 {streamLabel} · {total} {total === 1 ? 'article' : 'articles'}
             </p>
 
-            {query.isLoading ? <StorySkeletonList /> : null}
+            {query.isLoading ? <HomeFeedSkeleton rows={4} showControls={false} /> : null}
 
             {!query.isLoading && posts.length > 0 ? (
                 <section className="ledger-list" aria-label="Articles">
