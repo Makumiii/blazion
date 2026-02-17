@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 
+import { BackButton } from '../components/back-button';
 import { fetchPosts } from '../lib/api';
 import { formatAuthorDisplayName } from '../lib/author';
 import { DEFAULT_BLUR_DATA_URL } from '../lib/image-placeholder';
@@ -33,6 +34,7 @@ export default async function TagPage({ params }) {
 
     return (
         <main className="shell topic-shell">
+            <BackButton />
             <section className="topic-head">
                 <div>
                     <p className="section-kicker">Topic Lens</p>
