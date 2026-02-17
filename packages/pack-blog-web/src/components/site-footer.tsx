@@ -13,12 +13,13 @@ export function SiteFooter({ site }: SiteFooterProps) {
         <footer className="site-footer">
             <div className="shell footer-wrap">
                 <p className="muted">Thoughtful writing, synced from Notion and served by Blazion.</p>
-                <div className="social-row">
+                <div className="footer-links">
                     {socials.github ? <a href={socials.github}>GitHub</a> : null}
                     {socials.x ? <a href={socials.x}>X</a> : null}
                     {socials.linkedin ? <a href={socials.linkedin}>LinkedIn</a> : null}
                     {socials.instagram ? <a href={socials.instagram}>Instagram</a> : null}
                     {socials.email ? <Link href={`mailto:${socials.email}`}>Email</Link> : null}
+                    <a href="#top" aria-label="Back to top">↑ Top</a>
                 </div>
             </div>
         </footer>
