@@ -1,11 +1,11 @@
 # Blazion
 
-A monorepo blog platform that uses Notion as the CMS, Bun + Hono as API, SQLite for local persistence, and Next.js for SSR frontend rendering.
+A modular Notion-to-API-to-frontend platform. Today it ships with a `blog` pack (schema, sync rules, API contract, and frontend template) and is structured to add more packs (docs/wiki/etc.).
 
 ## Stack
 - `@blazion/api`: Bun runtime, Hono, Notion sync, SQLite
 - `@blazion/web`: Next.js App Router frontend
-- `@blazion/shared`: shared types/config/validators
+- `@blazion/shared`: shared types/config/validators + pack config contract
 
 ## Quick Start
 1. Install dependencies:
@@ -43,6 +43,7 @@ pnpm dev
 7. Verify locally
 - `http://localhost:3001` loads posts
 - Open a post page, related articles render, and comments appear if Giscus is configured
+- `http://localhost:3000/api/health` shows `enabledPacks` includes `blog`
 
 ## Set Up Notion Integration
 1. Create a Notion internal integration from the Notion developer dashboard.
@@ -72,6 +73,7 @@ Official Notion docs:
 - `NEXT_PUBLIC_GISCUS_CATEGORY_ID`: category id from giscus.app setup
 - `NEXT_PUBLIC_GISCUS_MAPPING`: mapping strategy (default `pathname`)
 - `DATABASE_PATH`: SQLite DB path (default `./data/blog.db`)
+- `BLAZION_PACKS`: comma-separated enabled packs override (example: `blog`)
 - `SYNC_INTERVAL`: cron for content sync (default `*/30 * * * *`)
 - `IMAGE_REFRESH_INTERVAL`: cron for image refresh (default `0 * * * *`)
 - `SYNC_HINT_ENABLED`: enable public `/api/sync/hint` endpoint (default `true` in non-production, `false` in production)
@@ -90,8 +92,8 @@ Official Notion docs:
 - `API_RATE_LIMIT_ENABLED`: enable global/route rate limiting (default `true`)
 - `API_RATE_LIMIT_WINDOW_MS`: limiter window in ms (default `60000`)
 - `API_RATE_LIMIT_MAX`: global requests per window per IP (default `60`)
-- `API_RATE_LIMIT_POSTS_MAX`: `/api/posts` requests per window per IP (default `120`)
-- `API_RATE_LIMIT_CONTENT_MAX`: `/api/posts/:slug/content` requests per window per IP (default `30`)
+- `API_RATE_LIMIT_POSTS_MAX`: `/api/posts` and `/api/blog/posts` requests per window per IP (default `120`)
+- `API_RATE_LIMIT_CONTENT_MAX`: `/api/posts/:slug/content` and `/api/blog/posts/:slug/content` requests per window per IP (default `30`)
 - `API_RATE_LIMIT_SYNC_MAX`: sync route requests per window per IP (default `2`)
 - `SYNC_ADMIN_API_KEY_ENABLED`: require API key for manual sync routes (defaults to `true` in production, `false` otherwise)
 - `SYNC_ADMIN_API_KEY`: key accepted via `x-api-key` or `Authorization: Bearer ...`
@@ -131,6 +133,12 @@ const config = {
         facebook: process.env.SOCIAL_FACEBOOK,
         github: process.env.SOCIAL_GITHUB,
     },
+    packs: [
+        {
+            name: 'blog',
+            enabled: true,
+        },
+    ],
 };
 
 export default config;
@@ -177,15 +185,37 @@ curl -X POST http://localhost:3000/api/sync \
 
 ## API Endpoints
 - `GET /api/health`
-- `POST /api/sync`
+- `POST /api/sync` (`?pack=blog` optional)
 - `POST /api/sync/hint` (rate-limited async sync trigger, disabled by default in production)
 - `GET /api/sync/status`
-- `POST /api/sync/images`
-- `GET /api/posts`
-- `GET /api/posts/:slug`
-- `GET /api/posts/:slug/recommendations?limit=3`
-- `GET /api/posts/:slug/content`
+- `POST /api/sync/images` (`?pack=blog` optional)
+- `GET /api/posts` (legacy alias for blog pack)
+- `GET /api/posts/:slug` (legacy alias for blog pack)
+- `GET /api/posts/:slug/recommendations?limit=3` (legacy alias for blog pack)
+- `GET /api/posts/:slug/content` (legacy alias for blog pack)
+- `GET /api/blog/posts` (pack namespace route)
+- `GET /api/blog/posts/:slug`
+- `GET /api/blog/posts/:slug/recommendations?limit=3`
+- `GET /api/blog/posts/:slug/content`
 - `GET /api/site` (public site settings, currently `socials`)
+
+## Pack Architecture
+- Core runtime reads enabled packs from `blazion.config.ts` (`packs`) or `BLAZION_PACKS`.
+- Each pack owns:
+  - Notion schema assumptions + validation
+  - sync mapping rules
+  - API route contract (namespaced under `/api/<pack>/*`)
+  - frontend template compatibility contract
+- Current built-in pack:
+  - `blog`
+- Legacy aliases are kept for backward compatibility:
+  - `blog` routes are also available under `/api/posts*`.
+
+## Installation Model
+- Contributor mode (this monorepo): contains core + all packs.
+- Product-user mode (recommended): should install only required packs via starter/preset CLI workflow.
+- Short-term (current repo state): enable only needed packs via config/env (`packs` in `blazion.config.ts` or `BLAZION_PACKS=blog`).
+- Long-term: packs publish independently (for example `@blazion/pack-blog`) with compatible core version ranges.
 
 ## Notion Database Properties
 - Required:
@@ -250,6 +280,8 @@ pnpm build
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm test:api
+pnpm test:smoke:api
 ```
 
 Package-specific:
@@ -257,4 +289,15 @@ Package-specific:
 pnpm --filter @blazion/api dev
 pnpm --filter @blazion/web dev
 pnpm --filter @blazion/api run setup -- --page-id=<id>
+pnpm --filter @blazion/api test
+pnpm --filter @blazion/api test:smoke
 ```
+
+## Testing Strategy
+- Unit tests:
+  - shared validation/config helpers
+  - pack resolution logic
+- API integration/smoke tests:
+  - starts real API process with isolated SQLite db seed
+  - verifies pack loading (`enabledPacks`), blog namespace + legacy alias routes, auth behavior, sync status paths
+- Keep assertions focused on contracts and invariants (status codes, required fields) to stay robust across UI/content changes.

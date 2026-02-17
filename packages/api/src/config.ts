@@ -2,11 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { defineConfig, type BlogEngineConfig } from '@blazion/shared';
+import { defineConfig, resolveEnabledPackNames, type BlogEngineConfig } from '@blazion/shared';
 
 export interface RuntimeConfig {
     config: BlogEngineConfig;
     notionConfigured: boolean;
+    enabledPacks: string[];
 }
 
 export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
@@ -26,6 +27,12 @@ export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
     const databasePath = readEnv('DATABASE_PATH', envFromFile) || fileConfig?.database?.path || './data/blog.db';
     const portValue = readEnv('PORT', envFromFile);
     const configPort = fileConfig?.server?.port;
+    const packsValue = readEnv('BLAZION_PACKS', envFromFile);
+    const packEntriesFromEnv = packsValue
+        .split(',')
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0)
+        .map((name) => ({ name, enabled: true }));
 
     const config = defineConfig({
         notion: {
@@ -50,11 +57,13 @@ export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
         },
         socials: fileConfig?.socials ?? {},
         site: fileConfig?.site ?? {},
+        packs: packEntriesFromEnv.length > 0 ? packEntriesFromEnv : fileConfig?.packs,
     });
 
     return {
         config,
         notionConfigured: Boolean(notionIntegrationKey && notionDatabaseId),
+        enabledPacks: resolveEnabledPackNames(config.packs),
     };
 }
 

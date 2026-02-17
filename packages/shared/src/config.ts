@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { normalizePackConfig, packConfigSchema, type PackConfig, type PackConfigInput } from './packs';
 
 export const socialLinksSchema = z.object({
     linkedin: z.string().url().optional(),
@@ -34,6 +35,7 @@ export const blogEngineConfigSchema = z.object({
     site: z.object({
         homeHeader: z.string().min(1),
     }),
+    packs: z.array(packConfigSchema).min(1),
 });
 
 export type BlogEngineConfig = z.infer<typeof blogEngineConfigSchema>;
@@ -46,6 +48,7 @@ export interface BlogEngineConfigInput {
     server?: Partial<BlogEngineConfig['server']>;
     socials?: Partial<BlogEngineConfig['socials']>;
     site?: Partial<BlogEngineConfig['site']>;
+    packs?: PackConfigInput[];
 }
 
 export const defaultBlogEngineConfig: Omit<BlogEngineConfig, 'notion'> = {
@@ -66,9 +69,17 @@ export const defaultBlogEngineConfig: Omit<BlogEngineConfig, 'notion'> = {
     site: {
         homeHeader: 'Stories from your Notion publication',
     },
+    packs: [
+        {
+            name: 'blog',
+            enabled: true,
+            options: {},
+        },
+    ],
 };
 
 export function defineConfig(config: BlogEngineConfigInput): BlogEngineConfig {
+    const resolvedPacks = resolvePackConfig(config.packs ?? defaultBlogEngineConfig.packs);
     const merged: BlogEngineConfig = {
         notion: config.notion,
         cron: {
@@ -95,7 +106,20 @@ export function defineConfig(config: BlogEngineConfigInput): BlogEngineConfig {
             ...defaultBlogEngineConfig.site,
             ...config.site,
         },
+        packs: resolvedPacks,
     };
 
     return blogEngineConfigSchema.parse(merged);
+}
+
+function resolvePackConfig(input: PackConfigInput[]): PackConfig[] {
+    const normalized = input.map((pack) => normalizePackConfig(pack));
+    const seen = new Set<string>();
+    for (const pack of normalized) {
+        if (seen.has(pack.name)) {
+            throw new Error(`Duplicate pack entry "${pack.name}" in configuration.`);
+        }
+        seen.add(pack.name);
+    }
+    return normalized;
 }

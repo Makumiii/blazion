@@ -4,6 +4,8 @@ import {
     defineConfig,
     formatDate,
     normalizeTags,
+    normalizePackConfig,
+    resolveEnabledPackNames,
     slugify,
     validatePost,
 } from '../src';
@@ -44,6 +46,40 @@ describe('shared package', () => {
         expect(config.server.port).toBe(3000);
         expect(config.database.path).toBe('./data/blog.db');
         expect(config.socials).toEqual({});
+        expect(config.packs).toEqual([
+            {
+                name: 'blog',
+                enabled: true,
+                options: {},
+            },
+        ]);
+    });
+
+    test('defineConfig allows explicit pack list and resolves enabled names', () => {
+        const config = defineConfig({
+            notion: {
+                integrationKey: 'test-key',
+                databaseId: 'db-id',
+            },
+            packs: [
+                { name: 'blog', enabled: true },
+                { name: 'docs', enabled: false },
+            ],
+        });
+
+        expect(resolveEnabledPackNames(config.packs)).toEqual(['blog']);
+    });
+
+    test('defineConfig rejects duplicate packs', () => {
+        expect(() =>
+            defineConfig({
+                notion: {
+                    integrationKey: 'test-key',
+                    databaseId: 'db-id',
+                },
+                packs: [{ name: 'blog' }, { name: 'blog' }],
+            }),
+        ).toThrow('Duplicate pack entry "blog"');
     });
 
     test('slugify and formatDate produce stable values', () => {
@@ -56,5 +92,13 @@ describe('shared package', () => {
             'Tech',
             'Design',
         ]);
+    });
+
+    test('normalizePackConfig accepts string shorthand', () => {
+        expect(normalizePackConfig('blog')).toEqual({
+            name: 'blog',
+            enabled: true,
+            options: {},
+        });
     });
 });

@@ -1,16 +1,16 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { rateLimiter } from 'hono-rate-limiter';
 import { Cron } from 'croner';
 import { timingSafeEqual } from 'node:crypto';
-import { postsQuerySchema } from '@blazion/shared';
-import type { BlogPost } from '@blazion/shared';
 
 import { loadRuntimeConfig } from './config';
-import { DatabaseService, type StoredPost } from './db';
+import { DatabaseService } from './db';
 import { NotionService } from './notion';
-import { SyncService } from './sync';
+import { SyncService, type SyncResult } from './sync';
+import { createBlogPackApi } from './packs/blog';
+import { resolveUnknownPackNames } from './packs';
 
 const runtime = await loadRuntimeConfig();
 const app = new Hono();
@@ -48,14 +48,35 @@ const notionService = runtime.notionConfigured
     ? new NotionService(runtime.config.notion.integrationKey)
     : null;
 
-const syncService =
-    notionService !== null
-        ? new SyncService({
-              notion: notionService,
-              db,
-              config: runtime.config,
-          })
-        : null;
+const enabledPackNames = runtime.enabledPacks;
+const unknownPackNames = resolveUnknownPackNames(enabledPackNames);
+if (unknownPackNames.length > 0) {
+    console.warn(`Unknown packs in config and skipped: ${unknownPackNames.join(', ')}`);
+}
+
+const activeSyncServices = new Map<string, SyncService>();
+if (enabledPackNames.includes('blog') && notionService !== null) {
+    activeSyncServices.set(
+        'blog',
+        new SyncService({
+            notion: notionService,
+            db,
+            config: runtime.config,
+        }),
+    );
+}
+
+if (enabledPackNames.length === 0) {
+    console.warn('No packs are enabled. Set "packs" in blazion.config.ts or BLAZION_PACKS env.');
+} else {
+    console.log(`Enabled packs: ${enabledPackNames.join(', ')}`);
+}
+
+if (activeSyncServices.size === 0) {
+    console.warn('No enabled pack has sync active (likely missing Notion credentials for current packs).');
+} else {
+    console.log(`Sync-active packs: ${Array.from(activeSyncServices.keys()).join(', ')}`);
+}
 
 const HINT_COOLDOWN_MS = 60_000;
 const RATE_MINUTE_MS = 60_000;
@@ -68,20 +89,22 @@ let syncInProgress = false;
 let lastSyncStartedAt = 0;
 let lastSyncFinishedAt = 0;
 let lastSyncSource: 'none' | 'cron' | 'manual' | 'hint' = 'none';
-let lastSyncResult: { synced: number; skipped: number; errors: number; removed: number } | null = null;
+let lastSyncResult: SyncResult | null = null;
+let lastSyncPackResults: Record<string, SyncResult> = {};
 let lastSyncError: string | null = null;
 let imageRefreshInProgress = false;
 let lastImageRefreshStartedAt = 0;
 let lastImageRefreshFinishedAt = 0;
 let lastImageRefreshSource: 'none' | 'cron' | 'manual' | 'request' = 'none';
-let lastImageRefreshResult: { synced: number; skipped: number; errors: number; removed: number } | null = null;
+let lastImageRefreshResult: SyncResult | null = null;
+let lastImageRefreshPackResults: Record<string, SyncResult> = {};
 let lastImageRefreshError: string | null = null;
 
 const ipMinuteCounter = new Map<string, CounterState>();
 const ipHourCounter = new Map<string, CounterState>();
 const sessionMinuteCounter = new Map<string, CounterState>();
 
-if (syncService !== null) {
+if (activeSyncServices.size > 0) {
     new Cron(runtime.config.cron.syncInterval, async () => {
         try {
             const result = await runSync('cron');
@@ -103,7 +126,6 @@ if (syncService !== null) {
     console.log(`Cron: image refresh job scheduled (${runtime.config.cron.imageRefreshInterval})`);
 }
 
-// Middleware
 app.use('*', logger());
 app.use('*', async (c, next) => {
     c.header('X-Content-Type-Options', 'nosniff');
@@ -159,9 +181,37 @@ if (rateLimitEnabled) {
             },
         }),
     );
+    app.use(
+        '/api/blog/posts',
+        rateLimiter({
+            windowMs: defaultRateWindowMs,
+            limit: postsRateLimit,
+            keyGenerator: (c) => getClientIp(c),
+            standardHeaders: 'draft-6',
+            skip: (c) => c.req.method === 'OPTIONS',
+            message: {
+                error: 'Rate limit exceeded',
+                message: 'Too many post listing requests.',
+            },
+        }),
+    );
 
     app.use(
         '/api/posts/:slug/content',
+        rateLimiter({
+            windowMs: defaultRateWindowMs,
+            limit: contentRateLimit,
+            keyGenerator: (c) => getClientIp(c),
+            standardHeaders: 'draft-6',
+            skip: (c) => c.req.method === 'OPTIONS',
+            message: {
+                error: 'Rate limit exceeded',
+                message: 'Too many content requests for this route.',
+            },
+        }),
+    );
+    app.use(
+        '/api/blog/posts/:slug/content',
         rateLimiter({
             windowMs: defaultRateWindowMs,
             limit: contentRateLimit,
@@ -206,12 +256,13 @@ if (rateLimitEnabled) {
     );
 }
 
-// Health check endpoint
 app.get('/api/health', (c) => {
     return c.json({
         status: 'ok',
         database: db.isConnected() ? 'connected' : 'disconnected',
         notionConfigured: runtime.notionConfigured,
+        enabledPacks: enabledPackNames,
+        syncEnabledPacks: Array.from(activeSyncServices.keys()),
         timestamp: new Date().toISOString(),
     });
 });
@@ -232,18 +283,25 @@ app.post('/api/sync/images', async (c) => {
         return authError;
     }
 
-    if (syncService === null) {
+    const pack = c.req.query('pack');
+    const packError = assertPackAvailable(c, pack);
+    if (packError) {
+        return packError;
+    }
+
+    if (activeSyncServices.size === 0) {
         return c.json(
             {
                 error: 'Not configured',
-                message: 'Set NOTION_API_KEY and NOTION_DATABASE_ID to enable sync.',
+                message:
+                    'No enabled pack has sync configured. Ensure a supported pack is enabled and Notion env vars are set.',
             },
             503,
         );
     }
 
     try {
-        const result = await runImageRefresh('manual');
+        const result = await runImageRefresh('manual', pack);
         return c.json(result);
     } catch (error) {
         console.error('Manual image refresh failed', error);
@@ -263,11 +321,18 @@ app.post('/api/sync', async (c) => {
         return authError;
     }
 
-    if (syncService === null) {
+    const pack = c.req.query('pack');
+    const packError = assertPackAvailable(c, pack);
+    if (packError) {
+        return packError;
+    }
+
+    if (activeSyncServices.size === 0) {
         return c.json(
             {
                 error: 'Not configured',
-                message: 'Set NOTION_API_KEY and NOTION_DATABASE_ID to enable sync.',
+                message:
+                    'No enabled pack has sync configured. Ensure a supported pack is enabled and Notion env vars are set.',
             },
             503,
         );
@@ -284,7 +349,7 @@ app.post('/api/sync', async (c) => {
     }
 
     try {
-        const result = await runSync('manual');
+        const result = await runSync('manual', pack);
         return c.json(result);
     } catch (error) {
         console.error('Manual sync failed', error);
@@ -309,11 +374,12 @@ app.post('/api/sync/hint', (c) => {
         );
     }
 
-    if (syncService === null) {
+    if (activeSyncServices.size === 0) {
         return c.json(
             {
                 error: 'Not configured',
-                message: 'Set NOTION_API_KEY and NOTION_DATABASE_ID to enable sync.',
+                message:
+                    'No enabled pack has sync configured. Ensure a supported pack is enabled and Notion env vars are set.',
             },
             503,
         );
@@ -414,280 +480,50 @@ app.get('/api/sync/status', (c) => {
         lastSyncFinishedAt: toIso(lastSyncFinishedAt),
         lastSyncSource,
         lastSyncResult,
+        lastSyncPackResults,
         lastSyncError,
         imageRefreshInProgress,
         lastImageRefreshStartedAt: toIso(lastImageRefreshStartedAt),
         lastImageRefreshFinishedAt: toIso(lastImageRefreshFinishedAt),
         lastImageRefreshSource,
         lastImageRefreshResult,
+        lastImageRefreshPackResults,
         lastImageRefreshError,
         imageUrlRefreshBufferSeconds,
         imageUrlRefreshCooldownSeconds,
         syncHintEnabled,
+        enabledPacks: enabledPackNames,
+        syncEnabledPacks: Array.from(activeSyncServices.keys()),
         nextHintAllowedAt: toIso(nextAllowedAtMs),
         hintCooldownRemainingMs: Math.max(0, nextAllowedAtMs - now),
     });
 });
 
-// Placeholder routes - will be implemented in Phase 3 & 4
-app.get('/api/posts', async (c) => {
-    const parsedQuery = postsQuerySchema.safeParse({
-        page: c.req.query('page'),
-        limit: c.req.query('limit'),
-        q: c.req.query('q'),
-        dateFrom: c.req.query('dateFrom'),
-        dateTo: c.req.query('dateTo'),
-        tags: c.req.query('tags'),
-        author: c.req.query('author'),
-        authors: c.req.query('authors'),
-        segment: c.req.query('segment'),
-        segments: c.req.query('segments'),
-        featured: c.req.query('featured'),
-        sort: c.req.query('sort'),
-    });
-
-    if (!parsedQuery.success) {
-        return c.json(
-            {
-                error: 'Invalid query',
-                message: 'Invalid pagination or filter query parameters.',
-                details: parsedQuery.error.flatten(),
+if (enabledPackNames.includes('blog')) {
+    const createBlogApi = () =>
+        createBlogPackApi({
+            db,
+            notionService,
+            syncService: activeSyncServices.get('blog') ?? null,
+            options: {
+                imageUrlRefreshBufferSeconds,
+                recommendationDefaultLimit,
+                recommendationMaxLimit,
+                recommendationWeightRelated,
+                recommendationWeightTag,
+                recommendationWeightSegment,
+                recommendationWeightFeatured,
+                recommendationWeightRecency,
+                recommendationRecencyWindowDays,
             },
-            400,
-        );
-    }
-
-    const query = parsedQuery.data;
-    const q = normalizeQueryText(query.q);
-    const dateFrom = normalizeDateBoundary(query.dateFrom, 'start');
-    const dateTo = normalizeDateBoundary(query.dateTo, 'end');
-    const tags = query.tags
-        ? query.tags
-              .split(',')
-              .map((value) => value.trim())
-              .filter((value) => value.length > 0)
-        : [];
-    const authors = parseCsv(query.authors ?? query.author);
-    const segments = parseCsv(query.segments ?? query.segment);
-    const featuredOnly = parseBooleanEnv(query.featured, false);
-    const sort = query.sort;
-
-    let result = db.listReadyPosts({
-        page: query.page,
-        limit: query.limit,
-        q,
-        dateFrom,
-        dateTo,
-        tags,
-        authors,
-        segments,
-        featuredOnly,
-        sort,
-    });
-
-    if (syncService !== null && shouldRefreshBannerUrls(result.data, Date.now(), imageUrlRefreshBufferSeconds)) {
-        try {
-            await runImageRefresh('request');
-            result = db.listReadyPosts({
-                page: query.page,
-                limit: query.limit,
-                q,
-                dateFrom,
-                dateTo,
-                tags,
-                authors,
-                segments,
-                featuredOnly,
-                sort,
-            });
-        } catch (error) {
-            console.warn('Failed to run proactive image URL refresh for /api/posts', error);
-        }
-    }
-
-    const totalPages = result.total === 0 ? 0 : Math.ceil(result.total / query.limit);
-
-    c.header('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
-    return c.json({
-        data: result.data.map(toApiPost),
-        pagination: {
-            page: query.page,
-            limit: query.limit,
-            total: result.total,
-            totalPages,
-        },
-        facets: result.facets,
-        appliedFilters: {
-            q,
-            dateFrom,
-            dateTo,
-            tags,
-            authors,
-            segments,
-            featuredOnly,
-            sort,
-        },
-    });
-});
-
-app.get('/api/search-index', async (c) => {
-    const limit = parseRecommendationLimit(c.req.query('limit'), 250, 1000);
-
-    let posts = db.listAllReadyPosts();
-    if (syncService !== null && shouldRefreshBannerUrls(posts, Date.now(), imageUrlRefreshBufferSeconds)) {
-        try {
-            await runImageRefresh('request');
-            posts = db.listAllReadyPosts();
-        } catch (error) {
-            console.warn('Failed to run proactive image URL refresh for /api/search-index', error);
-        }
-    }
-
-    c.header('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
-    return c.json({
-        data: posts.slice(0, limit).map(toApiPost),
-    });
-});
-
-app.get('/api/posts/:slug', async (c) => {
-    const slug = c.req.param('slug');
-    let post = db.getReadyPostBySlug(slug);
-    if (post && syncService !== null && shouldRefreshBannerUrl(post.bannerImageUrl, Date.now(), imageUrlRefreshBufferSeconds)) {
-        try {
-            await runImageRefresh('request');
-            post = db.getReadyPostBySlug(slug);
-        } catch (error) {
-            console.warn(`Failed to run proactive image URL refresh for /api/posts/${slug}`, error);
-        }
-    }
-    if (!post) {
-        return c.json(
-            {
-                error: 'Not found',
-                message: `Post with slug "${slug}" not found`,
-            },
-            404,
-        );
-    }
-
-    c.header('Cache-Control', 'public, max-age=120, stale-while-revalidate=600');
-    return c.json({
-        data: toApiPost(post),
-    });
-});
-
-app.get('/api/posts/:slug/recommendations', async (c) => {
-    const slug = c.req.param('slug');
-    const post = db.getReadyPostBySlug(slug);
-    if (!post) {
-        return c.json(
-            {
-                error: 'Not found',
-                message: `Post with slug "${slug}" not found`,
-            },
-            404,
-        );
-    }
-
-    const limit = parseRecommendationLimit(
-        c.req.query('limit'),
-        recommendationDefaultLimit,
-        recommendationMaxLimit,
-    );
-
-    let candidates = db.listAllReadyPosts().filter((candidate) => candidate.slug !== slug);
-    if (
-        syncService !== null &&
-        shouldRefreshBannerUrls(candidates, Date.now(), imageUrlRefreshBufferSeconds)
-    ) {
-        try {
-            await runImageRefresh('request');
-            candidates = db.listAllReadyPosts().filter((candidate) => candidate.slug !== slug);
-        } catch (error) {
-            console.warn(`Failed to run proactive image URL refresh for /api/posts/${slug}/recommendations`, error);
-        }
-    }
-
-    const ranking = rankRecommendations({
-        current: post,
-        candidates,
-        nowMs: Date.now(),
-        limit,
-    });
-
-    c.header('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
-    return c.json({
-        data: ranking.posts.map(toApiPost),
-        strategy: ranking.strategy,
-    });
-});
-
-app.get('/api/posts/:slug/content', async (c) => {
-    const slug = c.req.param('slug');
-    const post = db.getReadyPostBySlug(slug);
-    if (!post) {
-        return c.json(
-            {
-                error: 'Not found',
-                message: `Content for post "${slug}" not found`,
-            },
-            404,
-        );
-    }
-
-    if (notionService === null) {
-        return c.json(
-            {
-                error: 'Not configured',
-                message: 'Set NOTION_API_KEY and NOTION_DATABASE_ID to enable content fetch.',
-            },
-            503,
-        );
-    }
-
-    if (post.isPublic) {
-        try {
-            const recordMap = await notionService.getRecordMap(post.notionPageId);
-            c.header('Cache-Control', 'public, max-age=120, stale-while-revalidate=600');
-            return c.json({
-                recordMap,
-                renderMode: 'recordMap',
-            });
-        } catch (error) {
-            console.error('Failed to fetch recordMap', error);
-            return c.json(
-                {
-                    error: 'Content fetch failed',
-                    message: `Could not fetch content for post "${slug}"`,
-                },
-                502,
-            );
-        }
-    }
-
-    try {
-        const blocks = await notionService.getBlockContent(post.notionPageId);
-        c.header('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
-        return c.json({
-            recordMap: {},
-            blocks,
-            renderMode: 'blocks',
+            runImageRefresh,
         });
-    } catch (error) {
-        console.error('Failed to fetch private blocks', error);
-        return c.json(
-            {
-                error: 'Content fetch failed',
-                message: `Could not fetch private block content for post "${slug}"`,
-            },
-            502,
-        );
-    }
-});
 
-// Start server
+    app.route('/api/blog', createBlogApi());
+    app.route('/api', createBlogApi());
+}
+
 const port = runtime.config.server.port;
-
 console.log(`Blazion API running on http://localhost:${port}`);
 
 export default {
@@ -695,16 +531,10 @@ export default {
     fetch: app.fetch,
 };
 
-function toApiPost(post: BlogPost & { notionUrl: string }): BlogPost {
-    const { notionUrl: _, ...rest } = post;
-    return rest;
-}
-
-async function runSync(
-    source: 'cron' | 'manual' | 'hint',
-): Promise<{ synced: number; skipped: number; errors: number; removed: number }> {
-    if (syncService === null) {
-        throw new Error('Sync service is not configured.');
+async function runSync(source: 'cron' | 'manual' | 'hint', packName?: string): Promise<SyncResult> {
+    const targets = getSyncTargets(packName);
+    if (targets.length === 0) {
+        throw new Error('No sync-capable packs available for this request.');
     }
 
     syncInProgress = true;
@@ -713,9 +543,11 @@ async function runSync(
     lastSyncError = null;
 
     try {
-        const result = await syncService.syncNow();
-        lastSyncResult = result;
-        return result;
+        const packResults = await runSyncTargets(targets, (service) => service.syncNow());
+        lastSyncPackResults = packResults;
+        const aggregated = aggregateSyncResults(packResults);
+        lastSyncResult = aggregated;
+        return aggregated;
     } catch (error) {
         lastSyncError = error instanceof Error ? error.message : String(error);
         throw error;
@@ -727,9 +559,11 @@ async function runSync(
 
 async function runImageRefresh(
     source: 'cron' | 'manual' | 'request',
-): Promise<{ synced: number; skipped: number; errors: number; removed: number }> {
-    if (syncService === null) {
-        throw new Error('Sync service is not configured.');
+    packName?: string,
+): Promise<SyncResult> {
+    const targets = getSyncTargets(packName);
+    if (targets.length === 0) {
+        throw new Error('No sync-capable packs available for this request.');
     }
 
     const now = Date.now();
@@ -750,9 +584,11 @@ async function runImageRefresh(
     lastImageRefreshError = null;
 
     try {
-        const result = await syncService.refreshImageUrls();
-        lastImageRefreshResult = result;
-        return result;
+        const packResults = await runSyncTargets(targets, (service) => service.refreshImageUrls());
+        lastImageRefreshPackResults = packResults;
+        const aggregated = aggregateSyncResults(packResults);
+        lastImageRefreshResult = aggregated;
+        return aggregated;
     } catch (error) {
         lastImageRefreshError = error instanceof Error ? error.message : String(error);
         throw error;
@@ -760,6 +596,41 @@ async function runImageRefresh(
         lastImageRefreshFinishedAt = Date.now();
         imageRefreshInProgress = false;
     }
+}
+
+function getSyncTargets(packName?: string): Array<[string, SyncService]> {
+    if (packName && packName.trim().length > 0) {
+        const target = activeSyncServices.get(packName);
+        return target ? [[packName, target]] : [];
+    }
+    return Array.from(activeSyncServices.entries());
+}
+
+async function runSyncTargets(
+    targets: Array<[string, SyncService]>,
+    runner: (service: SyncService) => Promise<SyncResult>,
+): Promise<Record<string, SyncResult>> {
+    const results: Record<string, SyncResult> = {};
+    for (const [packName, service] of targets) {
+        results[packName] = await runner(service);
+    }
+    return results;
+}
+
+function aggregateSyncResults(results: Record<string, SyncResult>): SyncResult {
+    let synced = 0;
+    let skipped = 0;
+    let errors = 0;
+    let removed = 0;
+
+    for (const result of Object.values(results)) {
+        synced += result.synced;
+        skipped += result.skipped;
+        errors += result.errors;
+        removed += result.removed;
+    }
+
+    return { synced, skipped, errors, removed };
 }
 
 interface CounterState {
@@ -868,264 +739,28 @@ function parseIntEnv(input: string | undefined, fallback: number): number {
     return Math.floor(parsed);
 }
 
-function parseRecommendationLimit(
-    input: string | undefined,
-    defaultLimit: number,
-    maxLimit: number,
-): number {
-    if (!input) {
-        return Math.min(defaultLimit, maxLimit);
-    }
-
-    const parsed = Number(input);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-        return Math.min(defaultLimit, maxLimit);
-    }
-
-    return Math.max(1, Math.min(Math.floor(parsed), maxLimit));
-}
-
-function normalizeQueryText(input: string | undefined): string {
-    if (!input) {
-        return '';
-    }
-    return input.trim();
-}
-
-function normalizeDateBoundary(input: string | undefined, kind: 'start' | 'end'): string {
-    if (!input) {
-        return '';
-    }
-
-    const value = input.trim();
-    if (!value) {
-        return '';
-    }
-
-    // Accept YYYY-MM-DD and normalize to full-day UTC boundaries.
-    const dateOnlyMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (dateOnlyMatch) {
-        return kind === 'start' ? `${value}T00:00:00.000Z` : `${value}T23:59:59.999Z`;
-    }
-
-    const parsed = Date.parse(value);
-    if (!Number.isFinite(parsed)) {
-        return '';
-    }
-    return new Date(parsed).toISOString();
-}
-
-function rankRecommendations(input: {
-    current: StoredPost;
-    candidates: StoredPost[];
-    nowMs: number;
-    limit: number;
-}): { posts: StoredPost[]; strategy: 'related_ids' | 'tags' | 'segment' | 'featured' | 'latest' } {
-    const currentRelatedIds = new Set(input.current.relatedPostIds);
-    const currentTagSet = new Set(input.current.tags.map((tag) => tag.toLowerCase()));
-    const currentSegment = normalizeSegment(input.current.segment);
-
-    const scored = input.candidates
-        .map((candidate) => {
-            const hasDirectRelation =
-                currentRelatedIds.has(candidate.id) || candidate.relatedPostIds.includes(input.current.id);
-            const sharedTags = countSharedTags(currentTagSet, candidate.tags);
-            const hasSegmentMatch =
-                currentSegment !== null && currentSegment === normalizeSegment(candidate.segment);
-            const recencyScore = computeRecencyScore(
-                resolvePostTimestampMs(candidate),
-                input.nowMs,
-                recommendationRecencyWindowDays,
-                recommendationWeightRecency,
-            );
-
-            const score =
-                (hasDirectRelation ? recommendationWeightRelated : 0) +
-                sharedTags * recommendationWeightTag +
-                (hasSegmentMatch ? recommendationWeightSegment : 0) +
-                (candidate.featured ? recommendationWeightFeatured : 0) +
-                recencyScore;
-
-            return {
-                candidate,
-                score,
-                hasDirectRelation,
-                sharedTags,
-                hasSegmentMatch,
-            };
-        })
-        .sort((a, b) => {
-            if (b.score !== a.score) {
-                return b.score - a.score;
-            }
-
-            return resolvePostTimestampMs(b.candidate) - resolvePostTimestampMs(a.candidate);
-        });
-
-    const selected = scored.slice(0, input.limit);
-    const strategy = resolveRecommendationStrategy(selected);
-    return {
-        posts: selected.map((entry) => entry.candidate),
-        strategy,
-    };
-}
-
-function resolveRecommendationStrategy(
-    selected: Array<{
-        hasDirectRelation: boolean;
-        sharedTags: number;
-        hasSegmentMatch: boolean;
-        candidate: StoredPost;
-    }>,
-): 'related_ids' | 'tags' | 'segment' | 'featured' | 'latest' {
-    if (selected.some((entry) => entry.hasDirectRelation)) {
-        return 'related_ids';
-    }
-    if (selected.some((entry) => entry.sharedTags > 0)) {
-        return 'tags';
-    }
-    if (selected.some((entry) => entry.hasSegmentMatch)) {
-        return 'segment';
-    }
-    if (selected.some((entry) => entry.candidate.featured)) {
-        return 'featured';
-    }
-    return 'latest';
-}
-
-function normalizeSegment(input: string | null): string | null {
-    if (!input) {
+function assertPackAvailable(
+    c: Context,
+    packName: string | undefined,
+): Response | null {
+    if (!packName || packName.trim().length === 0) {
         return null;
     }
-    const normalized = input.trim().toLowerCase();
-    return normalized.length > 0 ? normalized : null;
-}
-
-function countSharedTags(currentTagSet: Set<string>, candidateTags: string[]): number {
-    if (currentTagSet.size === 0 || candidateTags.length === 0) {
-        return 0;
-    }
-
-    let count = 0;
-    for (const tag of candidateTags) {
-        if (currentTagSet.has(tag.toLowerCase())) {
-            count += 1;
-        }
-    }
-    return count;
-}
-
-function resolvePostTimestampMs(post: StoredPost): number {
-    const published = post.publishedAt ? Date.parse(post.publishedAt) : NaN;
-    if (Number.isFinite(published)) {
-        return published;
-    }
-
-    const created = Date.parse(post.createdAt);
-    if (Number.isFinite(created)) {
-        return created;
-    }
-
-    return 0;
-}
-
-function computeRecencyScore(
-    postTimeMs: number,
-    nowMs: number,
-    windowDays: number,
-    maxScore: number,
-): number {
-    if (!postTimeMs || postTimeMs > nowMs) {
-        return 0;
-    }
-
-    const ageDays = (nowMs - postTimeMs) / (24 * 60 * 60 * 1000);
-    if (ageDays >= windowDays) {
-        return 0;
-    }
-
-    const ratio = 1 - ageDays / windowDays;
-    return ratio * maxScore;
-}
-
-function shouldRefreshBannerUrls(
-    posts: Array<{ bannerImageUrl: string | null }>,
-    nowMs: number,
-    refreshBufferSeconds: number,
-): boolean {
-    for (const post of posts) {
-        if (shouldRefreshBannerUrl(post.bannerImageUrl, nowMs, refreshBufferSeconds)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-function shouldRefreshBannerUrl(
-    bannerUrl: string | null,
-    nowMs: number,
-    refreshBufferSeconds: number,
-): boolean {
-    if (!bannerUrl) {
-        return false;
-    }
-
-    const expiresAtMs = getSignedUrlExpiryMs(bannerUrl);
-    if (expiresAtMs === null) {
-        return false;
-    }
-
-    const refreshThresholdMs = refreshBufferSeconds * 1000;
-    return expiresAtMs - nowMs <= refreshThresholdMs;
-}
-
-function getSignedUrlExpiryMs(urlValue: string): number | null {
-    let url: URL;
-    try {
-        url = new URL(urlValue);
-    } catch {
+    if (activeSyncServices.has(packName)) {
         return null;
     }
-
-    const amzDate = url.searchParams.get('X-Amz-Date');
-    const amzExpires = url.searchParams.get('X-Amz-Expires');
-    if (!amzDate || !amzExpires) {
-        return null;
-    }
-
-    const signedAtMs = parseAmzDateToMs(amzDate);
-    const expiresSeconds = Number(amzExpires);
-    if (signedAtMs === null || !Number.isFinite(expiresSeconds) || expiresSeconds <= 0) {
-        return null;
-    }
-
-    return signedAtMs + expiresSeconds * 1000;
-}
-
-function parseAmzDateToMs(input: string): number | null {
-    const match = input.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
-    if (!match) {
-        return null;
-    }
-
-    const [, year, month, day, hour, minute, second] = match;
-    const parsed = Date.UTC(
-        Number(year),
-        Number(month) - 1,
-        Number(day),
-        Number(hour),
-        Number(minute),
-        Number(second),
+    return c.json(
+        {
+            error: 'Pack not available',
+            message: `Pack "${packName}" is not enabled or not sync-capable in this deployment.`,
+            available: Array.from(activeSyncServices.keys()),
+        },
+        400,
     );
-
-    if (!Number.isFinite(parsed)) {
-        return null;
-    }
-    return parsed;
 }
 
 function assertSyncAuthorization(
-    c: { req: { header: (name: string) => string | undefined }; json: (body: unknown, status?: number) => Response },
+    c: Context,
 ): Response | null {
     if (!syncAdminApiKeyEnabled) {
         return null;
@@ -1134,45 +769,36 @@ function assertSyncAuthorization(
     if (!syncAdminApiKey) {
         return c.json(
             {
-                error: 'Server misconfigured',
-                message: 'SYNC_ADMIN_API_KEY_ENABLED=true but SYNC_ADMIN_API_KEY is missing.',
-            },
-            500,
-        );
-    }
-
-    const provided = extractApiKey(c.req.header('x-api-key'), c.req.header('authorization'));
-    if (!provided || !secureCompare(provided, syncAdminApiKey)) {
-        return c.json(
-            {
                 error: 'Unauthorized',
-                message: 'Missing or invalid API key.',
+                message: 'SYNC_ADMIN_API_KEY is required when sync key protection is enabled.',
             },
             401,
         );
     }
+
+    const provided =
+        c.req.header('x-api-key') ||
+        c.req.header('authorization')?.replace(/^Bearer\s+/i, '').trim() ||
+        '';
+
+    if (!provided || !constantTimeEqual(provided, syncAdminApiKey)) {
+        return c.json(
+            {
+                error: 'Unauthorized',
+                message: 'Missing or invalid API key for sync endpoints.',
+            },
+            401,
+        );
+    }
+
     return null;
 }
 
-function extractApiKey(directHeader: string | undefined, authHeader: string | undefined): string {
-    if (directHeader?.trim()) {
-        return directHeader.trim();
+function constantTimeEqual(a: string, b: string): boolean {
+    const aBuffer = Buffer.from(a);
+    const bBuffer = Buffer.from(b);
+    if (aBuffer.length !== bBuffer.length) {
+        return false;
     }
-    if (authHeader?.toLowerCase().startsWith('bearer ')) {
-        return authHeader.slice(7).trim();
-    }
-    return '';
-}
-
-function secureCompare(left: string, right: string): boolean {
-    const leftBuffer = Buffer.from(left);
-    const rightBuffer = Buffer.from(right);
-    const size = Math.max(leftBuffer.length, rightBuffer.length, 1);
-    const paddedLeft = Buffer.alloc(size);
-    const paddedRight = Buffer.alloc(size);
-    leftBuffer.copy(paddedLeft);
-    rightBuffer.copy(paddedRight);
-
-    const equal = timingSafeEqual(paddedLeft, paddedRight);
-    return equal && leftBuffer.length === rightBuffer.length;
+    return timingSafeEqual(aBuffer, bBuffer);
 }
