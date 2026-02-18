@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 
 import { BackButton } from '../components/back-button';
 import { GiscusThread } from '../components/giscus-thread';
 import { NotionContent } from '../components/notion-content';
 import { PostSharePanel } from '../components/post-share-panel';
+import { ProgressiveImage } from '../components/progressive-image';
 import { ReadingProgress } from '../components/reading-progress';
 import { fetchPost, fetchPostContent, fetchPostRecommendations, fetchSiteSettings } from '../lib/api';
 import { formatAuthorDisplayName } from '../lib/author';
@@ -156,7 +156,7 @@ export default async function PostDetailPage({ params }) {
                         <p className="digest-kicker">/ Article</p>
                         {post.bannerImageUrl ? (
                             <div className="digest-banner-wrap">
-                                <Image
+                                <ProgressiveImage
                                     src={post.bannerImageUrl}
                                     alt=""
                                     className="digest-banner-media"
@@ -202,7 +202,7 @@ export default async function PostDetailPage({ params }) {
                                         >
                                             {item.bannerImageUrl ? (
                                                 <div className="post-recommendation-media-pane">
-                                                    <Image
+                                                    <ProgressiveImage
                                                         src={item.bannerImageUrl}
                                                         alt=""
                                                         className="post-recommendation-media"

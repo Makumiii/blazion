@@ -895,6 +895,18 @@
   transition: transform var(--t-slow) var(--ease-main);
 }
 
+.progressive-image {
+  filter: blur(14px);
+  opacity: 0.86;
+  transition: filter 220ms ease, opacity 220ms ease;
+  will-change: filter, opacity;
+}
+
+.progressive-image.is-loaded {
+  filter: blur(0);
+  opacity: 1;
+}
+
 .spotlight-media-link:hover .spotlight-media,
 .featured-media-wrap:hover .featured-media,
 .article-row:hover .article-cover,

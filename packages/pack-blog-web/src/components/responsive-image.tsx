@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import { ProgressiveImage } from './progressive-image';
 
 interface ResponsiveImageProps {
     src: string | null;
@@ -35,7 +35,7 @@ export function ResponsiveImage({
 
     return (
         <div className={`media-wrap ${ratioName}`}>
-            <Image
+            <ProgressiveImage
                 src={src}
                 alt={alt}
                 fill
