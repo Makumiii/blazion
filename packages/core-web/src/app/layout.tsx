@@ -1,5 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 
 import { ThemeToggle } from '../components/theme-toggle';
 import { SyncHintBeacon } from '../components/sync-hint-beacon';
@@ -8,6 +9,11 @@ import { ThemeProvider } from '../components/providers/theme-provider';
 import { fetchSiteSettings } from '../lib/api';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3001';
+const inter = Inter({
+    subsets: ['latin'],
+    variable: '--font-sans',
+    display: 'swap',
+});
 
 export const metadata: Metadata = {
     metadataBase: new URL(siteUrl),
@@ -91,7 +97,7 @@ export default async function RootLayout({ children }) {
 
     return (
         <html lang="en" suppressHydrationWarning>
-            <body>
+            <body className={`${inter.variable} font-sans`}>
                 <ThemeProvider>
                     <QueryProvider>
                         <header className="utility-header" aria-label="Utility controls">

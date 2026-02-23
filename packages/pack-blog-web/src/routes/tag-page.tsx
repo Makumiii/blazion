@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import Image from 'next/image';
 
 import { BackButton } from '../components/back-button';
+import { ProgressiveImage } from '../components/progressive-image';
 import { fetchPosts } from '../lib/api';
 import { formatAuthorDisplayName } from '../lib/author';
 import { DEFAULT_BLUR_DATA_URL } from '../lib/image-placeholder';
@@ -49,7 +49,7 @@ export default async function TagPage({ params }) {
                         <div className="article-row-grid">
                         <Link href={`/posts/${post.slug}`} className="article-cover-link" aria-label={`Read ${post.title}`}>
                             {post.bannerImageUrl ? (
-                                <Image
+                                <ProgressiveImage
                                     src={post.bannerImageUrl}
                                     alt=""
                                     className="article-cover"
