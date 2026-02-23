@@ -1,10 +1,6 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import '@fontsource-variable/mona-sans';
-@import '@fontsource/source-serif-4/400.css';
-@import '@fontsource/source-serif-4/500.css';
-@import '@fontsource/source-serif-4/600.css';
 @import 'react-notion-x/src/styles.css';
 
 @layer base {
@@ -38,8 +34,8 @@
     --rule: #c4c2bb;
     --signal: #d4291e;
 
-    --font-sans: 'Mona Sans Variable', 'Mona Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    --font-serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    --font-sans: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --font-serif: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
     --step--1: clamp(0.76rem, 0.73rem + 0.1vw, 0.84rem);
     --step-0: clamp(0.94rem, 0.9rem + 0.18vw, 1.06rem);
