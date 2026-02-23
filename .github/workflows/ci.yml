@@ -65,9 +65,7 @@ jobs:
         run: pnpm exec playwright install chromium
 
       - name: Build API and Web
-        run: |
-          pnpm --filter @blazion/core-api build
-          NEXT_PUBLIC_BLAZION_API_URL=http://localhost:3000 pnpm --filter @blazion/core-web build
+        run: NEXT_PUBLIC_BLAZION_API_URL=http://localhost:3000 pnpm build
 
       - name: Start API and Web
         run: |
