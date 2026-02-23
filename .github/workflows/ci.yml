@@ -64,6 +64,11 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install chromium
 
+      - name: Build API runtime dependencies
+        run: |
+          pnpm --filter @blazion/shared build
+          pnpm --filter @blazion/pack-blog-api build
+
       - name: Start API and Web
         run: |
           pnpm --filter @blazion/core-api dev > /tmp/blazion-api.log 2>&1 &
