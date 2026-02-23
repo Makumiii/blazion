@@ -15,7 +15,7 @@ function apiBaseUrl() {
 
 async function safeJson(url, options) {
     const controller = new AbortController();
-    const timeoutMs = options?.timeoutMs ?? 2500;
+    const timeoutMs = options?.timeoutMs ?? 8000;
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     const fetchOptions = {
         next: options?.revalidate ? { revalidate: options.revalidate } : undefined,
