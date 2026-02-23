@@ -64,8 +64,10 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install chromium
 
-      - name: Start dev stack
-        run: pnpm dev > /tmp/blazion-dev.log 2>&1 &
+      - name: Start API and Web
+        run: |
+          pnpm --filter @blazion/core-api dev > /tmp/blazion-api.log 2>&1 &
+          pnpm --filter @blazion/core-web dev > /tmp/blazion-web.log 2>&1 &
 
       - name: Wait for API and Web
         run: |
@@ -75,8 +77,11 @@ jobs:
             fi
             sleep 2
           done
-          echo "Timed out waiting for dev servers" >&2
-          tail -n 200 /tmp/blazion-dev.log || true
+          echo "Timed out waiting for API/Web servers" >&2
+          echo "--- API LOG ---" >&2
+          tail -n 200 /tmp/blazion-api.log >&2 || true
+          echo "--- WEB LOG ---" >&2
+          tail -n 200 /tmp/blazion-web.log >&2 || true
           exit 1
 
       - name: Visual regression
