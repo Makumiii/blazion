@@ -31,13 +31,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck
-        run: pnpm -r typecheck
+        run: pnpm typecheck
 
       - name: Test
-        run: pnpm -r test
+        run: pnpm test
 
       - name: Build
-        run: NEXT_PUBLIC_BLAZION_API_URL=http://localhost:3000 pnpm -r build
+        run: NEXT_PUBLIC_BLAZION_API_URL=http://localhost:3000 pnpm build
 
   visual-regression:
     runs-on: ubuntu-latest
