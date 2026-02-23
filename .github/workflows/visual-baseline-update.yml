@@ -1,0 +1,73 @@
+name: Update Visual Baseline
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install chromium
+
+      - name: Build API and Web
+        run: NEXT_PUBLIC_BLAZION_API_URL=http://localhost:3000 pnpm build
+
+      - name: Start API and Web
+        run: |
+          DATABASE_PATH=packages/core-api/data/blog.db pnpm --filter @blazion/core-api start > /tmp/blazion-api.log 2>&1 &
+          PORT=3001 pnpm --filter @blazion/core-web start > /tmp/blazion-web.log 2>&1 &
+
+      - name: Wait for API and Web
+        run: |
+          for i in {1..90}; do
+            if curl -sf http://localhost:3000/api/health >/dev/null && curl -sf http://localhost:3001/ >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Timed out waiting for API/Web servers" >&2
+          echo "--- API LOG ---" >&2
+          tail -n 200 /tmp/blazion-api.log >&2 || true
+          echo "--- WEB LOG ---" >&2
+          tail -n 200 /tmp/blazion-web.log >&2 || true
+          exit 1
+
+      - name: Update baseline images
+        run: pnpm test:visual:update
+
+      - name: Commit baseline updates
+        run: |
+          if git diff --quiet -- outputs/shadcn-baseline; then
+            echo "No baseline changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add outputs/shadcn-baseline
+          git commit -m "chore: update visual baseline snapshots"
+          git push
