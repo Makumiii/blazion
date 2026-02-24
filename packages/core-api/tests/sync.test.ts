@@ -108,6 +108,7 @@ describe('sync service', () => {
                     port: 3000,
                 },
                 socials: {},
+                share: { providers: [] },
                 site: {
                     homeHeader: 'Test',
                 },
@@ -206,6 +207,7 @@ describe('sync service', () => {
                     port: 3000,
                 },
                 socials: {},
+                share: { providers: [] },
                 site: {
                     homeHeader: 'Test',
                 },

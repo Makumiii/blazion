@@ -9,6 +9,7 @@ export interface RuntimeConfig {
     config: BlogEngineConfig;
     notionConfigured: boolean;
     notionDatabaseIds: Record<string, string>;
+    notionPageId: string | null;
     enabledPacks: string[];
 }
 
@@ -41,10 +42,13 @@ export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
     const enabledPacks = resolveEnabledPackNames(config.packs);
     const notionDatabaseIds = readPackDatabaseIdsFromLocalDatabase(resolvedDatabasePath, enabledPacks);
 
+    const notionPageId = readEnv('NOTION_PAGE_ID', envFromFile);
+
     return {
         config,
         notionConfigured: Boolean(notionIntegrationKey && Object.keys(notionDatabaseIds).length > 0),
         notionDatabaseIds,
+        notionPageId: notionPageId || null,
         enabledPacks,
     };
 }

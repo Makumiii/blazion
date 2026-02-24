@@ -90,6 +90,92 @@ describe('notion service', () => {
         expect(attempts).toBe(2);
     });
 
+    test('findCompatibleDatabaseInPage returns matching database ID', async () => {
+        const service = new NotionService('test');
+
+        let childrenCallCount = 0;
+        (service as any).client = {
+            blocks: {
+                children: {
+                    list: async () => {
+                        childrenCallCount += 1;
+                        return {
+                            results: [
+                                { type: 'paragraph', id: 'block-1' },
+                                { type: 'child_database', id: 'incompatible-db' },
+                                { type: 'child_database', id: 'compatible-db' },
+                            ],
+                            has_more: false,
+                        };
+                    },
+                },
+            },
+            databases: {
+                retrieve: async ({ database_id }: { database_id: string }) => {
+                    if (database_id === 'incompatible-db') {
+                        return {
+                            object: 'database',
+                            properties: {}, // Missing required schema
+                        };
+                    }
+                    if (database_id === 'compatible-db') {
+                        return {
+                            object: 'database',
+                            properties: {
+                                Title: { type: 'title' },
+                                Slug: { type: 'rich_text' },
+                                Status: {
+                                    type: 'select',
+                                    select: {
+                                        options: [{ name: 'draft' }, { name: 'pending' }, { name: 'ready' }],
+                                    },
+                                },
+                            },
+                        };
+                    }
+                    throw new Error('Not found');
+                },
+            },
+        };
+
+        const result = await service.findCompatibleDatabaseInPage('page-1');
+        expect(result).toBe('compatible-db');
+        expect(childrenCallCount).toBe(1);
+    });
+
+    test('findCompatibleDatabaseInPage returns null when no compatible databases exist', async () => {
+        const service = new NotionService('test');
+
+        (service as any).client = {
+            blocks: {
+                children: {
+                    list: async () => {
+                        return {
+                            results: [
+                                { type: 'child_database', id: 'incompatible-db' },
+                            ],
+                            has_more: false,
+                        };
+                    },
+                },
+            },
+            databases: {
+                retrieve: async () => {
+                    return {
+                        object: 'database',
+                        properties: {
+                            Title: { type: 'title' },
+                            // Missing Slug and Status
+                        },
+                    };
+                },
+            },
+        };
+
+        const result = await service.findCompatibleDatabaseInPage('page-empty');
+        expect(result).toBeNull();
+    });
+
     test('getDatabasePosts maps notion properties and filters invalid rows', async () => {
         const service = new NotionService('test');
         (service as any).client = {

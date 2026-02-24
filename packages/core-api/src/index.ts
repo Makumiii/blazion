@@ -73,6 +73,49 @@ if (enabledPackNames.length === 0) {
     console.log(`Enabled packs: ${enabledPackNames.join(', ')}`);
 }
 
+for (const pack of registeredPacks) {
+    if (activeSyncServices.has(pack.name)) {
+        continue; // Already has a bound database and API key
+    }
+
+    if (!notionService || !runtime.notionPageId || !pack.setup) {
+        continue;
+    }
+
+    try {
+        console.log(`[Auto-Init] Checking for existing Notion database for pack: ${pack.name}...`);
+        const existingDbId = await notionService.findCompatibleDatabaseInPage(runtime.notionPageId);
+
+        let boundDbId: string;
+        if (existingDbId) {
+            console.log(`[Auto-Init] Found existing compatible Notion database for pack: ${pack.name}`);
+            boundDbId = existingDbId;
+        } else {
+            console.log(`[Auto-Init] No compatible database found. Creating new Notion database for pack: ${pack.name}...`);
+            boundDbId = await pack.setup.createDatabase({
+                client: (notionService as any).client,
+                pageId: runtime.notionPageId,
+            });
+            console.log(`[Auto-Init] Successfully created new Notion database for pack: ${pack.name}`);
+        }
+
+        db.setPackDatabaseId(pack.name, boundDbId);
+
+        const service = pack.createSyncService({
+            db,
+            notionService,
+            config: runtime.config,
+            notionDatabaseId: boundDbId,
+        });
+
+        if (service !== null) {
+            activeSyncServices.set(pack.name, service);
+        }
+    } catch (error) {
+        console.error(`[Auto-Init] Failed to initialize Notion database for pack: ${pack.name}`, error);
+    }
+}
+
 if (activeSyncServices.size === 0) {
     console.warn('No enabled pack has sync active (likely missing Notion credentials for current packs).');
 } else {

@@ -365,6 +365,43 @@ export class NotionService {
         }
     }
 
+    public async findCompatibleDatabaseInPage(pageId: string): Promise<string | null> {
+        let cursor: string | undefined;
+        let hasMore = true;
+
+        while (hasMore) {
+            const response = await this.withRetry(() =>
+                this.client.blocks.children.list({
+                    block_id: pageId,
+                    start_cursor: cursor,
+                    page_size: 100,
+                }),
+            );
+
+            for (const block of response.results) {
+                if (typeof block !== 'object' || block === null || !('type' in block)) {
+                    continue;
+                }
+                const typedBlock = block as Record<string, any>;
+                if (typedBlock.type !== 'child_database' || !typedBlock.id) {
+                    continue;
+                }
+
+                try {
+                    await this.assertMinimumDatabaseSchema(typedBlock.id);
+                    return typedBlock.id;
+                } catch (error) {
+                    // Database exists but lacks required schema, ignore it and keep searching.
+                }
+            }
+
+            hasMore = response.has_more;
+            cursor = response.next_cursor ?? undefined;
+        }
+
+        return null;
+    }
+
     private async withRetry<T>(fn: () => Promise<T>, maxAttempts = 4): Promise<T> {
         let lastError: unknown;
         for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {

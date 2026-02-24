@@ -2,7 +2,7 @@
     "extends": "../../tsconfig.json",
     "compilerOptions": {
         "outDir": "./dist",
-        "rootDir": "./src",
+        "rootDir": "./",
         "types": [
             "bun"
         ],
@@ -11,7 +11,8 @@
         "noEmit": true
     },
     "include": [
-        "src/**/*"
+        "src/**/*",
+        "tests/**/*"
     ],
     "exclude": [
         "node_modules",
