@@ -299,6 +299,13 @@ export class DatabaseService {
         return mapRowToPost(row);
     }
 
+    public countReadyPosts(): number {
+        const row = this.db
+            .query('SELECT COUNT(*) as count FROM posts WHERE status = ?')
+            .get('ready') as { count: number } | null;
+        return row?.count ?? 0;
+    }
+
     public listAllReadyPosts(): StoredPost[] {
         const rows = this.db
             .query(

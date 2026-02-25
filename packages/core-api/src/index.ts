@@ -145,10 +145,13 @@ const SESSION_MINUTE_LIMIT = 1;
 let syncInProgress = false;
 let lastSyncStartedAt = 0;
 let lastSyncFinishedAt = 0;
-let lastSyncSource: 'none' | 'cron' | 'manual' | 'hint' = 'none';
+let lastSyncSource: 'none' | 'cron' | 'manual' | 'hint' | 'startup' = 'none';
 let lastSyncResult: SyncResult | null = null;
 let lastSyncPackResults: Record<string, SyncResult> = {};
 let lastSyncError: string | null = null;
+let startupSyncScheduled = false;
+let startupSyncAttempted = false;
+let startupSyncSkippedReason: string | null = null;
 let imageRefreshInProgress = false;
 let lastImageRefreshStartedAt = 0;
 let lastImageRefreshFinishedAt = 0;
@@ -181,6 +184,31 @@ if (activeSyncServices.size > 0) {
         }
     });
     console.log(`Cron: image refresh job scheduled (${runtime.config.cron.imageRefreshInterval})`);
+}
+
+if (activeSyncServices.size > 0) {
+    const readyCount = db.countReadyPosts();
+    if (readyCount === 0) {
+        startupSyncScheduled = true;
+        const startupDelayMs = parseIntEnv(process.env.SYNC_STARTUP_DELAY_MS, 2_000);
+        console.log(
+            `[Bootstrap] Local post store is empty. Scheduling startup sync in ${startupDelayMs}ms.`,
+        );
+
+        const bootstrapTimer = setTimeout(() => {
+            startupSyncAttempted = true;
+            void runSync('startup')
+                .then((result) => {
+                    console.log('Startup sync completed', result);
+                })
+                .catch((error) => {
+                    console.error('Startup sync failed', error);
+                });
+        }, startupDelayMs);
+        bootstrapTimer.unref?.();
+    } else {
+        startupSyncSkippedReason = `ready_posts_present:${readyCount}`;
+    }
 }
 
 app.use('*', logger());
@@ -289,9 +317,13 @@ app.get('/api/health', (c) => {
     return c.json({
         status: 'ok',
         database: db.isConnected() ? 'connected' : 'disconnected',
+        readyPosts: db.countReadyPosts(),
         notionConfigured: runtime.notionConfigured,
         enabledPacks: enabledPackNames,
         syncEnabledPacks: Array.from(activeSyncServices.keys()),
+        startupSyncScheduled,
+        startupSyncAttempted,
+        startupSyncSkippedReason,
         timestamp: new Date().toISOString(),
     });
 });
@@ -512,6 +544,9 @@ app.get('/api/sync/status', (c) => {
         lastSyncResult,
         lastSyncPackResults,
         lastSyncError,
+        startupSyncScheduled,
+        startupSyncAttempted,
+        startupSyncSkippedReason,
         imageRefreshInProgress,
         lastImageRefreshStartedAt: toIso(lastImageRefreshStartedAt),
         lastImageRefreshFinishedAt: toIso(lastImageRefreshFinishedAt),
@@ -559,7 +594,10 @@ export default {
     fetch: app.fetch,
 };
 
-async function runSync(source: 'cron' | 'manual' | 'hint', packName?: string): Promise<SyncResult> {
+async function runSync(
+    source: 'cron' | 'manual' | 'hint' | 'startup',
+    packName?: string,
+): Promise<SyncResult> {
     const targets = getSyncTargets(packName);
     if (targets.length === 0) {
         throw new Error('No sync-capable packs available for this request.');

@@ -141,4 +141,8 @@ describe('database service', () => {
         expect(db.getPackDatabaseId('blog')).toBe('notion-db-2');
         expect(db.getPackDatabaseId('docs')).toBeNull();
     });
+
+    test('countReadyPosts returns number of ready posts', () => {
+        expect(db.countReadyPosts()).toBeGreaterThanOrEqual(1);
+    });
 });
