@@ -16,6 +16,19 @@ const app = new Hono();
 const db = new DatabaseService(runtime.config.database.path);
 db.migrate();
 
+// Persist runtime-discovered pack bindings (e.g. env-provided NOTION_DATABASE_ID)
+// so clean deployments become durable without requiring a separate setup command.
+for (const [packName, notionDatabaseId] of Object.entries(runtime.notionDatabaseIds)) {
+    if (!notionDatabaseId) {
+        continue;
+    }
+    const existingBinding = db.getPackDatabaseId(packName);
+    if (!existingBinding) {
+        db.setPackDatabaseId(packName, notionDatabaseId);
+        console.log(`[Bootstrap] Linked "${packName}" pack to Notion database from runtime config.`);
+    }
+}
+
 const corsOrigins = parseCsv(process.env.CORS_ORIGINS);
 const rateLimitEnabled = parseBooleanEnv(process.env.API_RATE_LIMIT_ENABLED, true);
 const syncAdminApiKeyEnabled = parseBooleanEnv(

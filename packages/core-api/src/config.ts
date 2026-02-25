@@ -40,7 +40,8 @@ export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
         packs: fileConfig?.packs,
     });
     const enabledPacks = resolveEnabledPackNames(config.packs);
-    const notionDatabaseIds = readPackDatabaseIdsFromLocalDatabase(resolvedDatabasePath, enabledPacks);
+    const localDatabaseIds = readPackDatabaseIdsFromLocalDatabase(resolvedDatabasePath, enabledPacks);
+    const notionDatabaseIds = resolvePackDatabaseIds(enabledPacks, localDatabaseIds, envFromFile);
 
     const notionPageId = readEnv('NOTION_PAGE_ID', envFromFile);
 
@@ -51,6 +52,34 @@ export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
         notionPageId: notionPageId || null,
         enabledPacks,
     };
+}
+
+function resolvePackDatabaseIds(
+    enabledPacks: string[],
+    localBindings: Record<string, string>,
+    envFromFile: Record<string, string>,
+): Record<string, string> {
+    const resolved: Record<string, string> = { ...localBindings };
+
+    // Backward-compatible default for single blog deployments.
+    const defaultDatabaseId = readEnv('NOTION_DATABASE_ID', envFromFile).trim();
+    if (defaultDatabaseId && enabledPacks.includes('blog') && !resolved.blog) {
+        resolved.blog = defaultDatabaseId;
+    }
+
+    // Per-pack override: NOTION_DATABASE_ID_<PACK_NAME_UPPER>
+    for (const packName of enabledPacks) {
+        if (resolved[packName]) {
+            continue;
+        }
+        const envKey = `NOTION_DATABASE_ID_${packName.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
+        const packDatabaseId = readEnv(envKey, envFromFile).trim();
+        if (packDatabaseId) {
+            resolved[packName] = packDatabaseId;
+        }
+    }
+
+    return resolved;
 }
 
 async function loadConfigFile(workspaceRoot: string): Promise<Partial<BlogEngineConfig> | null> {
