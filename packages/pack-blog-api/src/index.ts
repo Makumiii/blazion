@@ -241,14 +241,14 @@ export function createBlogPackApi(input: BlogPackDependencies): Hono {
             input.options.recommendationMaxLimit,
         );
 
-        let candidates = input.db.listAllReadyPosts().filter((candidate) => candidate.slug !== slug);
+        let candidates = input.db.listAllReadyPosts().filter((candidate) => candidate.slug !== post.slug);
         if (
             input.syncService !== null &&
             shouldRefreshBannerUrls(candidates, Date.now(), input.options.imageUrlRefreshBufferSeconds)
         ) {
             try {
                 await input.runImageRefresh('request');
-                candidates = input.db.listAllReadyPosts().filter((candidate) => candidate.slug !== slug);
+                candidates = input.db.listAllReadyPosts().filter((candidate) => candidate.slug !== post.slug);
             } catch (error) {
                 console.warn(
                     `Failed to run proactive image URL refresh for /api/posts/${slug}/recommendations`,

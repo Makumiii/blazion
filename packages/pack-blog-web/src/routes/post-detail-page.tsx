@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import { BackButton } from '../components/back-button';
 import { GiscusThread } from '../components/giscus-thread';
@@ -81,9 +81,12 @@ export default async function PostDetailPage({ params }) {
     if (!post) {
         notFound();
     }
+    if (post.slug !== params.slug) {
+        redirect(`/posts/${encodeURIComponent(post.slug)}`);
+    }
 
-    const content = await fetchPostContent(params.slug, { revalidate });
-    const recommendationsResponse = await fetchPostRecommendations(params.slug, { limit: 8 }, { revalidate });
+    const content = await fetchPostContent(post.slug, { revalidate });
+    const recommendationsResponse = await fetchPostRecommendations(post.slug, { limit: 8 }, { revalidate });
     const recommendations = recommendationsResponse?.data ?? [];
     const hasRecommendationCarousel = recommendations.length > 2;
     const siteSettings = await fetchSiteSettings({ revalidate: 300 });
@@ -254,7 +257,7 @@ export default async function PostDetailPage({ params }) {
                     </section>
                 ) : null}
 
-                <GiscusThread title={post.title} />
+                <GiscusThread title={post.title} term={post.notionPageId} />
             </article>
         </main>
     );

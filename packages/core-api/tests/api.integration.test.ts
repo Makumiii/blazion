@@ -82,8 +82,13 @@ describe('api integration', () => {
         const singlePayload = (await singleResponse.json()) as { data: { slug: string } };
         expect(singlePayload.data.slug).toBe('integration-seeded-post');
 
+        const aliasResponse = await request('/api/blog/posts/integration-seeded-post-old');
+        expect(aliasResponse.status).toBe(200);
+        const aliasPayload = (await aliasResponse.json()) as { data: { slug: string } };
+        expect(aliasPayload.data.slug).toBe('integration-seeded-post');
+
         const recommendationResponse = await request(
-            '/api/blog/posts/integration-seeded-post/recommendations?limit=3',
+            '/api/blog/posts/integration-seeded-post-old/recommendations?limit=3',
         );
         expect(recommendationResponse.status).toBe(200);
         const recommendations = (await recommendationResponse.json()) as {
@@ -147,6 +152,29 @@ function seedDatabase(dbPath: string): void {
     db.migrate();
 
     const now = new Date().toISOString();
+    db.upsertPost({
+        id: 'integration-post-1',
+        notionPageId: 'integration-post-1',
+        title: 'Integration Seeded Post',
+        slug: 'integration-seeded-post-old',
+        summary: 'Seeded post used for API integration testing.',
+        author: 'Integration Bot',
+        authorEmail: null,
+        authorAvatarUrl: null,
+        tags: ['testing', 'integration'],
+        segment: 'engineering',
+        status: 'ready',
+        publishedAt: now,
+        bannerImageUrl: null,
+        readTimeMinutes: 3,
+        featured: true,
+        relatedPostIds: [],
+        isPublic: false,
+        notionUrl: 'https://notion.so/integration-post-1',
+        createdAt: now,
+        updatedAt: now,
+    });
+
     db.upsertPost({
         id: 'integration-post-1',
         notionPageId: 'integration-post-1',

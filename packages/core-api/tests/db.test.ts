@@ -92,6 +92,40 @@ describe('database service', () => {
         expect(result.facets.segments.some((facet) => facet.value === 'engineering')).toBe(true);
     });
 
+    test('slug renames preserve alias lookup for the same post', () => {
+        const now = new Date().toISOString();
+
+        db.upsertPost({
+            id: 'db-post-1',
+            notionPageId: 'db-post-1',
+            title: 'DB Test Post',
+            slug: 'db-test-post-renamed',
+            summary: 'Testing sqlite access path.',
+            author: 'DB Tester',
+            authorEmail: null,
+            authorAvatarUrl: null,
+            tags: ['db', 'tests'],
+            segment: 'engineering',
+            status: 'ready',
+            publishedAt: now,
+            bannerImageUrl: null,
+            readTimeMinutes: 4,
+            featured: true,
+            relatedPostIds: [],
+            isPublic: true,
+            notionUrl: 'https://notion.so/db-post-1',
+            createdAt: now,
+            updatedAt: now,
+        });
+
+        const current = db.getReadyPostBySlug('db-test-post-renamed');
+        expect(current?.slug).toBe('db-test-post-renamed');
+
+        const alias = db.getReadyPostBySlug('db-test-post');
+        expect(alias?.slug).toBe('db-test-post-renamed');
+        expect(alias?.notionPageId).toBe('db-post-1');
+    });
+
     test('deletePostsNotInNotionIds removes stale posts', () => {
         const now = new Date().toISOString();
         db.upsertPost({

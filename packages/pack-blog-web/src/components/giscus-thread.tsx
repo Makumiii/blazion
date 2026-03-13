@@ -4,14 +4,13 @@ import { useEffect, useMemo } from 'react';
 
 interface GiscusThreadProps {
     title: string;
+    term: string;
 }
 
 const GISCUS_REPO = process.env.NEXT_PUBLIC_GISCUS_REPO;
 const GISCUS_REPO_ID = process.env.NEXT_PUBLIC_GISCUS_REPO_ID;
 const GISCUS_CATEGORY = process.env.NEXT_PUBLIC_GISCUS_CATEGORY;
 const GISCUS_CATEGORY_ID = process.env.NEXT_PUBLIC_GISCUS_CATEGORY_ID;
-const GISCUS_MAPPING = process.env.NEXT_PUBLIC_GISCUS_MAPPING ?? 'pathname';
-
 function hasGiscusConfig() {
     return Boolean(GISCUS_REPO && GISCUS_REPO_ID && GISCUS_CATEGORY && GISCUS_CATEGORY_ID);
 }
@@ -23,7 +22,7 @@ function currentGiscusTheme(): 'light' | 'dark_dimmed' {
     return document.documentElement.classList.contains('dark') ? 'dark_dimmed' : 'light';
 }
 
-export function GiscusThread({ title }: GiscusThreadProps) {
+export function GiscusThread({ title, term }: GiscusThreadProps) {
     const ready = useMemo(hasGiscusConfig, []);
 
     useEffect(() => {
@@ -47,7 +46,8 @@ export function GiscusThread({ title }: GiscusThreadProps) {
         script.setAttribute('data-repo-id', GISCUS_REPO_ID!);
         script.setAttribute('data-category', GISCUS_CATEGORY!);
         script.setAttribute('data-category-id', GISCUS_CATEGORY_ID!);
-        script.setAttribute('data-mapping', GISCUS_MAPPING);
+        script.setAttribute('data-mapping', 'specific');
+        script.setAttribute('data-term', term);
         script.setAttribute('data-strict', '0');
         script.setAttribute('data-reactions-enabled', '1');
         script.setAttribute('data-emit-metadata', '0');
@@ -78,7 +78,7 @@ export function GiscusThread({ title }: GiscusThreadProps) {
         return () => {
             observer.disconnect();
         };
-    }, [ready]);
+    }, [ready, term]);
 
     return (
         <section className="post-discussion" aria-label="Comments and reactions">

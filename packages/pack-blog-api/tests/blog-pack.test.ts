@@ -141,6 +141,21 @@ describe('blog pack api', () => {
         expect(privatePayload.renderMode).toBe('blocks');
         expect(Array.isArray(privatePayload.blocks)).toBe(true);
     });
+
+    test('recommendations exclude the current post when resolved through an alias slug', async () => {
+        const root = makePost('root', { slug: 'new-root' });
+        const related = makePost('rel-1', { slug: 'related-1' });
+
+        const api = createApiWithPosts([root, related], {
+            resolveSlug: (slug) => (slug === 'old-root' ? root : null),
+        });
+
+        const response = await api.fetch(new Request('http://localhost/posts/old-root/recommendations?limit=2'));
+        expect(response.status).toBe(200);
+        const payload = (await response.json()) as { data: Array<{ slug: string }> };
+        expect(payload.data.some((post) => post.slug === 'new-root')).toBe(false);
+        expect(payload.data.some((post) => post.slug === 'related-1')).toBe(true);
+    });
 });
 
 function createApiWithPosts(
@@ -148,6 +163,7 @@ function createApiWithPosts(
     overrides?: Partial<{
         syncService: unknown;
         notionService: unknown;
+        resolveSlug: (slug: string) => BlogPackStoredPost | null;
         runImageRefresh: () => Promise<{ synced: number; skipped: number; errors: number; removed: number }>;
     }>,
 ) {
@@ -162,7 +178,7 @@ function createApiWithPosts(
             },
         }),
         listAllReadyPosts: () => posts,
-        getReadyPostBySlug: (slug: string) => bySlug.get(slug) ?? null,
+        getReadyPostBySlug: (slug: string) => overrides?.resolveSlug?.(slug) ?? bySlug.get(slug) ?? null,
     };
 
     return createBlogPackApi({

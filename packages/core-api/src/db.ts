@@ -92,6 +92,15 @@ export class DatabaseService {
             CREATE INDEX IF NOT EXISTS idx_posts_slug ON posts(slug);
             CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);
 
+            CREATE TABLE IF NOT EXISTS post_slug_aliases (
+                slug TEXT PRIMARY KEY,
+                notion_page_id TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_post_slug_aliases_notion_page_id
+            ON post_slug_aliases(notion_page_id);
+
             CREATE TABLE IF NOT EXISTS sync_runs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 synced INTEGER NOT NULL,
@@ -123,6 +132,9 @@ export class DatabaseService {
     }
 
     public upsertPost(post: BlogPost & { notionUrl: string }): void {
+        const previous = this.db
+            .query('SELECT slug FROM posts WHERE notion_page_id = ? LIMIT 1')
+            .get(post.notionPageId) as { slug: string } | null;
         const statement = this.db.query(`
             INSERT INTO posts (
                 id, notion_page_id, title, slug, summary, author, tags_json, status,
@@ -154,28 +166,54 @@ export class DatabaseService {
                 updated_at = excluded.updated_at
         `);
 
-        statement.run(
-            post.id,
-            post.notionPageId,
-            post.title,
-            post.slug,
-            post.summary,
-            post.author,
-            JSON.stringify(post.tags),
-            post.status,
-            post.authorEmail,
-            post.authorAvatarUrl,
-            post.segment,
-            post.publishedAt,
-            post.bannerImageUrl,
-            post.readTimeMinutes,
-            post.featured ? 1 : 0,
-            JSON.stringify(post.relatedPostIds),
-            post.isPublic ? 1 : 0,
-            post.notionUrl,
-            post.createdAt,
-            post.updatedAt,
-        );
+        const now = new Date().toISOString();
+        const runUpsert = this.db.transaction(() => {
+            // Current canonical slugs always win over aliases if they collide.
+            this.db.query('DELETE FROM post_slug_aliases WHERE slug = ?').run(post.slug);
+
+            statement.run(
+                post.id,
+                post.notionPageId,
+                post.title,
+                post.slug,
+                post.summary,
+                post.author,
+                JSON.stringify(post.tags),
+                post.status,
+                post.authorEmail,
+                post.authorAvatarUrl,
+                post.segment,
+                post.publishedAt,
+                post.bannerImageUrl,
+                post.readTimeMinutes,
+                post.featured ? 1 : 0,
+                JSON.stringify(post.relatedPostIds),
+                post.isPublic ? 1 : 0,
+                post.notionUrl,
+                post.createdAt,
+                post.updatedAt,
+            );
+
+            this.db
+                .query('DELETE FROM post_slug_aliases WHERE notion_page_id = ? AND slug = ?')
+                .run(post.notionPageId, post.slug);
+
+            if (previous && previous.slug !== post.slug) {
+                this.db
+                    .query(
+                        `
+                        INSERT INTO post_slug_aliases (slug, notion_page_id, created_at)
+                        VALUES (?, ?, ?)
+                        ON CONFLICT(slug) DO UPDATE SET
+                            notion_page_id = excluded.notion_page_id,
+                            created_at = excluded.created_at
+                        `,
+                    )
+                    .run(previous.slug, post.notionPageId, now);
+            }
+        });
+
+        runUpsert();
     }
 
     public recordSyncRun(input: { synced: number; skipped: number; errors: number; removed?: number }): void {
@@ -293,10 +331,25 @@ export class DatabaseService {
         const row = this.db
             .query('SELECT * FROM posts WHERE slug = ? AND status = ? LIMIT 1')
             .get(slug, 'ready') as PostRow | null;
-        if (!row) {
+        if (row) {
+            return mapRowToPost(row);
+        }
+
+        const aliasRow = this.db
+            .query(
+                `
+                SELECT posts.*
+                FROM post_slug_aliases
+                INNER JOIN posts ON posts.notion_page_id = post_slug_aliases.notion_page_id
+                WHERE post_slug_aliases.slug = ? AND posts.status = ?
+                LIMIT 1
+                `,
+            )
+            .get(slug, 'ready') as PostRow | null;
+        if (!aliasRow) {
             return null;
         }
-        return mapRowToPost(row);
+        return mapRowToPost(aliasRow);
     }
 
     public countReadyPosts(): number {
@@ -320,11 +373,21 @@ export class DatabaseService {
 
     public deletePostsNotInNotionIds(notionPageIds: string[]): number {
         if (notionPageIds.length === 0) {
+            this.db.query('DELETE FROM post_slug_aliases').run();
             const result = this.db.query('DELETE FROM posts').run() as { changes?: number };
             return result.changes ?? 0;
         }
 
         const placeholders = notionPageIds.map(() => '?').join(', ');
+        this.db
+            .query(
+                `
+                DELETE FROM post_slug_aliases
+                WHERE notion_page_id NOT IN (${placeholders})
+                `,
+            )
+            .run(...notionPageIds);
+
         const query = `DELETE FROM posts WHERE notion_page_id NOT IN (${placeholders})`;
         const result = this.db.query(query).run(...notionPageIds) as { changes?: number };
         return result.changes ?? 0;
