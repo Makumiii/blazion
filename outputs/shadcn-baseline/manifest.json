@@ -18,10 +18,6 @@
       "name": "posts_hello-world"
     },
     {
-      "route": "/search?q=test",
-      "name": "search_q_test"
-    },
-    {
       "route": "/tags/Tech",
       "name": "tags_Tech"
     }

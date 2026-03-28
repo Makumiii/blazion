@@ -104,8 +104,8 @@
 
 ## 3) API -> UI Mapping Plan (implemented)
 
-- Pagination supported (`page`, `limit`) -> paged navigation on Home, Posts, Tag, Search.
-- Text search supported (`q`) -> dedicated `/search` page and search form.
+- Pagination supported (`page`, `limit`) -> paged navigation on Home, Posts, Tag.
+- Text search supported (`q`) -> homepage search and filter flow.
 - Tag filtering supported (`tags`) -> `/tags/[tag]` pages.
 - Segment/author filters supported -> `/posts` accepts filter query params.
 - Recommendations endpoint supported -> related posts section on Post Detail.
