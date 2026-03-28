@@ -1,26 +1,35 @@
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-    title: 'About',
-    description: 'The design philosophy and technical foundation behind Blazion Journal.',
-};
+import { fetchSiteSettings } from '../lib/api';
+import { buildPageMetadata, resolveSiteUrl } from '../lib/seo';
+
+export async function generateMetadata(): Promise<Metadata> {
+    const siteSettings = await fetchSiteSettings({ revalidate: 300 });
+
+    return buildPageMetadata({
+        siteSettings,
+        siteUrl: resolveSiteUrl(process.env.NEXT_PUBLIC_SITE_URL),
+        title: 'About',
+        description: `Learn about ${siteSettings.site.name} and its editorial focus.`,
+        path: '/about',
+    });
+}
 
 export default function AboutPage() {
     return (
         <section className="prose-shell">
             <p className="eyebrow">About</p>
-            <h1>Editorial UI for API-first blogs</h1>
+            <h1>About this publication</h1>
             <p>
-                Blazion Journal is designed around the belief that editorial content deserves
-                editorial presentation. Every typographic decision, every spacing value, every
-                interaction is deliberate — informed by Scandinavian design principles of
-                restraint, material honesty, and precision.
+                This publication is designed around the belief that editorial content deserves
+                editorial presentation. The goal is a reading experience that feels calm,
+                intentional, and easy to navigate without turning the archive into a noisy feed.
             </p>
             <p>
-                This frontend is built from the Blazion API contract, not guessed CMS assumptions.
-                It handles pagination, filtering, related posts, content modes, and resilient
-                media rendering. Content is synced from Notion and rendered through a custom
-                design system that prioritises readability and quiet confidence over visual noise.
+                Under the surface, the blog is built on structured content, resilient metadata,
+                pagination, tagging, related posts, and rich content rendering. The result is a
+                reusable publishing setup that can be tailored to a specific publication without
+                tying the editorial voice to the underlying platform.
             </p>
         </section>
     );

@@ -24,6 +24,41 @@ export const shareProviderSchema = z.enum([
     'email',
 ]);
 
+export const siteSeoRobotsSchema = z.object({
+    index: z.boolean(),
+    follow: z.boolean(),
+});
+
+export type SiteSeoRobotsConfig = z.infer<typeof siteSeoRobotsSchema>;
+
+export const siteSeoSchema = z.object({
+    description: z.string().min(1),
+    locale: z.string().min(2),
+    keywords: z.array(z.string().min(1)),
+    defaultOgImage: z.string().url().optional(),
+    twitterHandle: z.string().min(1).optional(),
+    robots: siteSeoRobotsSchema,
+});
+
+export type SiteSeoConfig = z.infer<typeof siteSeoSchema>;
+
+export interface SiteSeoConfigInput {
+    description?: string;
+    locale?: string;
+    keywords?: string[];
+    defaultOgImage?: string;
+    twitterHandle?: string;
+    robots?: Partial<SiteSeoRobotsConfig>;
+}
+
+export const siteConfigSchema = z.object({
+    name: z.string().min(1),
+    homeHeader: z.string().min(1),
+    seo: siteSeoSchema,
+});
+
+export type SiteConfig = z.infer<typeof siteConfigSchema>;
+
 export const blogEngineConfigSchema = z.object({
     notion: z.object({
         integrationKey: z.string().min(1),
@@ -45,9 +80,7 @@ export const blogEngineConfigSchema = z.object({
     share: z.object({
         providers: z.array(shareProviderSchema),
     }),
-    site: z.object({
-        homeHeader: z.string().min(1),
-    }),
+    site: siteConfigSchema,
     packs: z.array(packConfigSchema).min(1),
 });
 
@@ -61,8 +94,43 @@ export interface BlogEngineConfigInput {
     server?: Partial<BlogEngineConfig['server']>;
     socials?: Partial<BlogEngineConfig['socials']>;
     share?: Partial<BlogEngineConfig['share']>;
-    site?: Partial<BlogEngineConfig['site']>;
+    site?: {
+        name?: string;
+        homeHeader?: string;
+        seo?: SiteSeoConfigInput;
+    };
     packs?: PackConfigInput[];
+}
+
+export const defaultSiteSeoConfig: SiteSeoConfig = {
+    description: 'Articles, essays, and updates from this publication.',
+    locale: 'en_US',
+    keywords: [],
+    robots: {
+        index: true,
+        follow: true,
+    },
+};
+
+function normalizeTwitterHandle(value: string | undefined): string | undefined {
+    const trimmed = value?.trim();
+    if (!trimmed) {
+        return undefined;
+    }
+    return trimmed.startsWith('@') ? trimmed : `@${trimmed}`;
+}
+
+export function defineSiteSeo(config: SiteSeoConfigInput = {}): SiteSeoConfig {
+    return siteSeoSchema.parse({
+        ...defaultSiteSeoConfig,
+        ...config,
+        keywords: config.keywords ?? defaultSiteSeoConfig.keywords,
+        twitterHandle: normalizeTwitterHandle(config.twitterHandle),
+        robots: {
+            ...defaultSiteSeoConfig.robots,
+            ...config.robots,
+        },
+    });
 }
 
 export const defaultBlogEngineConfig: Omit<BlogEngineConfig, 'notion'> = {
@@ -84,7 +152,9 @@ export const defaultBlogEngineConfig: Omit<BlogEngineConfig, 'notion'> = {
         providers: ['x', 'whatsapp', 'facebook', 'linkedin'],
     },
     site: {
+        name: 'Stories from your Notion publication',
         homeHeader: 'Stories from your Notion publication',
+        seo: defaultSiteSeoConfig,
     },
     packs: [
         {
@@ -123,10 +193,20 @@ export function defineConfig(config: BlogEngineConfigInput): BlogEngineConfig {
             ...defaultBlogEngineConfig.share,
             ...config.share,
         },
-        site: {
-            ...defaultBlogEngineConfig.site,
-            ...config.site,
-        },
+        site: (() => {
+            const homeHeader =
+                config.site?.homeHeader?.trim() ||
+                defaultBlogEngineConfig.site.homeHeader;
+            const name =
+                config.site?.name?.trim() ||
+                homeHeader;
+
+            return {
+                name,
+                homeHeader,
+                seo: defineSiteSeo(config.site?.seo),
+            };
+        })(),
         packs: resolvedPacks,
     };
 

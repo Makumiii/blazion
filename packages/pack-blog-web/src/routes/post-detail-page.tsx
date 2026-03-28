@@ -12,6 +12,7 @@ import { fetchPost, fetchPostContent, fetchPostRecommendations, fetchSiteSetting
 import { formatAuthorDisplayName } from '../lib/author';
 import { DEFAULT_BLUR_DATA_URL } from '../lib/image-placeholder';
 import { estimateReadTime } from '../lib/reading-time';
+import { buildArticleJsonLd, buildPostMetadata, resolveSiteUrl } from '../lib/seo';
 
 export const revalidate = 60;
 
@@ -32,48 +33,19 @@ export async function generateMetadata({ params }): Promise<Metadata> {
     const post = await fetchPost(params.slug, { revalidate });
     if (!post) {
         return {
-            title: 'Post Not Found | Blazion',
+            title: 'Post Not Found',
             description: 'The requested post could not be found.',
         };
     }
     const displayAuthor = formatAuthorDisplayName(post.author);
+    const siteSettings = await fetchSiteSettings({ revalidate: 300 });
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3001';
-    const postUrl = `${siteUrl}/posts/${encodeURIComponent(post.slug)}`;
-    const description = post.summary ?? 'Read this post on Blazion.';
-    const images = post.bannerImageUrl ? [{ url: post.bannerImageUrl, alt: post.title }] : undefined;
-    const keywords = [post.title, ...(post.tags ?? []), ...(displayAuthor ? [displayAuthor] : [])];
-    const publishedTime = post.publishedAt ?? undefined;
-    const modifiedTime = post.updatedAt ?? undefined;
-    const authors = displayAuthor ? [displayAuthor] : undefined;
-
-    return {
-        title: `${post.title} | Blazion`,
-        description,
-        keywords,
-        authors: displayAuthor ? [{ name: displayAuthor }] : undefined,
-        category: post.tags?.[0] ?? undefined,
-        alternates: {
-            canonical: `/posts/${post.slug}`,
-        },
-        openGraph: {
-            type: 'article',
-            url: postUrl,
-            title: post.title,
-            description,
-            images,
-            publishedTime,
-            modifiedTime,
-            authors,
-            tags: post.tags,
-        },
-        twitter: {
-            card: post.bannerImageUrl ? 'summary_large_image' : 'summary',
-            title: post.title,
-            description,
-            images: post.bannerImageUrl ? [post.bannerImageUrl] : undefined,
-        },
-    };
+    return buildPostMetadata({
+        post,
+        authorName: displayAuthor,
+        siteSettings,
+        siteUrl: resolveSiteUrl(process.env.NEXT_PUBLIC_SITE_URL),
+    });
 }
 
 export default async function PostDetailPage({ params }) {
@@ -92,23 +64,14 @@ export default async function PostDetailPage({ params }) {
     const siteSettings = await fetchSiteSettings({ revalidate: 300 });
     const readTimeMinutes = estimateReadTime(content);
     const displayAuthor = formatAuthorDisplayName(post.author);
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3001';
+    const siteUrl = resolveSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
     const postUrl = `${siteUrl}/posts/${encodeURIComponent(post.slug)}`;
-    const articleJsonLd = {
-        '@context': 'https://schema.org',
-        '@type': 'Article',
-        headline: post.title,
-        description: post.summary ?? undefined,
-        image: post.bannerImageUrl ? [post.bannerImageUrl] : undefined,
-        author: displayAuthor ? [{ '@type': 'Person', name: displayAuthor }] : undefined,
-        datePublished: post.publishedAt ?? undefined,
-        dateModified: post.updatedAt ?? undefined,
-        keywords: post.tags,
-        mainEntityOfPage: {
-            '@type': 'WebPage',
-            '@id': postUrl,
-        },
-    };
+    const articleJsonLd = buildArticleJsonLd({
+        post,
+        authorName: displayAuthor,
+        siteSettings,
+        siteUrl,
+    });
 
     return (
         <main className="shell post-shell">

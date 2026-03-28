@@ -1,10 +1,12 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 
 import { BackButton } from '../components/back-button';
 import { ProgressiveImage } from '../components/progressive-image';
-import { fetchPosts } from '../lib/api';
+import { fetchPosts, fetchSiteSettings } from '../lib/api';
 import { formatAuthorDisplayName } from '../lib/author';
 import { DEFAULT_BLUR_DATA_URL } from '../lib/image-placeholder';
+import { buildTagMetadata, resolveSiteUrl } from '../lib/seo';
 
 export const revalidate = 60;
 
@@ -19,6 +21,28 @@ function readableDate(value: string | null) {
             day: 'numeric',
         })
         .toUpperCase();
+}
+
+export async function generateMetadata({ params }): Promise<Metadata> {
+    const tag = decodeURIComponent(params.tag);
+    const [posts, siteSettings] = await Promise.all([
+        fetchPosts(
+            {
+                page: 1,
+                limit: 1,
+                tags: tag,
+            },
+            { revalidate },
+        ),
+        fetchSiteSettings({ revalidate: 300 }),
+    ]);
+
+    return buildTagMetadata({
+        siteSettings,
+        siteUrl: resolveSiteUrl(process.env.NEXT_PUBLIC_SITE_URL),
+        tag,
+        postCount: posts.pagination.total,
+    });
 }
 
 export default async function TagPage({ params }) {
@@ -47,36 +71,36 @@ export default async function TagPage({ params }) {
                 {posts.data.map((post) => (
                     <article key={post.id} className="article-row">
                         <div className="article-row-grid">
-                        <Link href={`/posts/${post.slug}`} className="article-cover-link" aria-label={`Read ${post.title}`}>
-                            {post.bannerImageUrl ? (
-                                <ProgressiveImage
-                                    src={post.bannerImageUrl}
-                                    alt=""
-                                    className="article-cover"
-                                    width={400}
-                                    height={400}
-                                    sizes="(max-width: 740px) 100vw, 200px"
-                                    placeholder="blur"
-                                    blurDataURL={DEFAULT_BLUR_DATA_URL}
-                                />
-                            ) : (
-                                <div className="article-cover article-cover-fallback" role="presentation" />
-                            )}
-                        </Link>
-                        <div className="article-copy">
-                            <p className="meta-line">
-                                {formatAuthorDisplayName(post.author) || 'Unknown'} · {readableDate(post.publishedAt)}
-                            </p>
-                            <h2 className="article-title">
-                                <Link href={`/posts/${post.slug}`} className="headline-link">
-                                    <span>{post.title}</span>
-                                    <span className="headline-link-mark" aria-hidden="true">
-                                        ↗
-                                    </span>
-                                </Link>
-                            </h2>
-                            <p className="lede">{post.summary ?? 'No summary yet.'}</p>
-                        </div>
+                            <Link href={`/posts/${post.slug}`} className="article-cover-link" aria-label={`Read ${post.title}`}>
+                                {post.bannerImageUrl ? (
+                                    <ProgressiveImage
+                                        src={post.bannerImageUrl}
+                                        alt=""
+                                        className="article-cover"
+                                        width={400}
+                                        height={400}
+                                        sizes="(max-width: 740px) 100vw, 200px"
+                                        placeholder="blur"
+                                        blurDataURL={DEFAULT_BLUR_DATA_URL}
+                                    />
+                                ) : (
+                                    <div className="article-cover article-cover-fallback" role="presentation" />
+                                )}
+                            </Link>
+                            <div className="article-copy">
+                                <p className="meta-line">
+                                    {formatAuthorDisplayName(post.author) || 'Unknown'} · {readableDate(post.publishedAt)}
+                                </p>
+                                <h2 className="article-title">
+                                    <Link href={`/posts/${post.slug}`} className="headline-link">
+                                        <span>{post.title}</span>
+                                        <span className="headline-link-mark" aria-hidden="true">
+                                            ↗
+                                        </span>
+                                    </Link>
+                                </h2>
+                                <p className="lede">{post.summary ?? 'No summary yet.'}</p>
+                            </div>
                         </div>
                     </article>
                 ))}

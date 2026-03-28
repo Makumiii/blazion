@@ -6,9 +6,11 @@
   "exports": {
     "./routes/*": "./src/routes/*.tsx",
     "./components/*": "./src/components/*.tsx",
-    "./components/ui/*": "./src/components/ui/*.tsx"
+    "./components/ui/*": "./src/components/ui/*.tsx",
+    "./seo": "./src/lib/seo.ts"
   },
   "scripts": {
+    "test": "bun test tests",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit"
   },

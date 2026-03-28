@@ -29,7 +29,19 @@ const config = {
         providers: ['x', 'whatsapp', 'facebook', 'linkedin'],
     },
     site: {
+        name: 'Everything Technology',
         homeHeader: 'Everything Technology',
+        seo: {
+            description: 'Field notes, essays, and practical guidance for technology teams.',
+            locale: 'en_US',
+            keywords: ['technology', 'engineering', 'product'],
+            twitterHandle: '@dev_maks',
+            defaultOgImage: 'https://example.com/og-default.png',
+            robots: {
+                index: true,
+                follow: true,
+            },
+        },
     },
     packs: [
         {

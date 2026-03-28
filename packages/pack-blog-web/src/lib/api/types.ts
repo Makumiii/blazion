@@ -59,7 +59,19 @@ export interface SiteResponse {
             providers: Array<'x' | 'whatsapp' | 'facebook' | 'linkedin' | 'instagram' | 'telegram' | 'reddit' | 'email'>;
         };
         site: {
+            name: string;
             homeHeader: string;
+            seo: {
+                description: string;
+                locale: string;
+                keywords: string[];
+                defaultOgImage?: string;
+                twitterHandle?: string;
+                robots: {
+                    index: boolean;
+                    follow: boolean;
+                };
+            };
         };
     };
 }

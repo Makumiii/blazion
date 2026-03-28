@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import { buildSiteMetadata, localeToLanguageTag, resolveSiteUrl } from '@blazion/pack-blog-web/seo';
 
 import { ThemeToggle } from '../components/theme-toggle';
 import { SyncHintBeacon } from '../components/sync-hint-beacon';
@@ -8,29 +9,19 @@ import { QueryProvider } from '../components/providers/query-provider';
 import { ThemeProvider } from '../components/providers/theme-provider';
 import { fetchSiteSettings } from '../lib/api';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3001';
 const inter = Inter({
     subsets: ['latin'],
     variable: '--font-sans',
     display: 'swap',
 });
 
-export const metadata: Metadata = {
-    metadataBase: new URL(siteUrl),
-    title: 'Blazion',
-    description: 'Operational intelligence and strategic writing for product organizations.',
-    openGraph: {
-        type: 'website',
-        title: 'Blazion',
-        description: 'Operational intelligence and strategic writing for product organizations.',
-        url: siteUrl,
-    },
-    twitter: {
-        card: 'summary_large_image',
-        title: 'Blazion',
-        description: 'Operational intelligence and strategic writing for product organizations.',
-    },
-};
+export async function generateMetadata(): Promise<Metadata> {
+    const siteSettings = await fetchSiteSettings({ revalidate: 300 });
+    return buildSiteMetadata({
+        siteSettings,
+        siteUrl: resolveSiteUrl(process.env.NEXT_PUBLIC_SITE_URL),
+    });
+}
 
 const FOLLOW_ORDER = [
     'linkedin',
@@ -80,6 +71,7 @@ function followLabel(key: FollowKey): string {
 export default async function RootLayout({ children }) {
     const siteSettings = await fetchSiteSettings({ revalidate: 300 });
     const socials = (siteSettings.socials ?? {}) as FollowLinks;
+    const languageTag = localeToLanguageTag(siteSettings.site.seo.locale);
     const followLinks = FOLLOW_ORDER.flatMap((key) => {
         const raw = typeof socials[key] === 'string' ? socials[key]!.trim() : '';
         if (!raw) {
@@ -96,7 +88,7 @@ export default async function RootLayout({ children }) {
     });
 
     return (
-        <html lang="en" suppressHydrationWarning>
+        <html lang={languageTag} suppressHydrationWarning>
             <body className={`${inter.variable} font-sans`}>
                 <ThemeProvider>
                     <QueryProvider>

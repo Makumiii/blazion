@@ -50,6 +50,10 @@ describe('shared package', () => {
         expect(config.database.path).toBe('./data/blog.db');
         expect(config.socials).toEqual({});
         expect(config.share.providers).toEqual(['x', 'whatsapp', 'facebook', 'linkedin']);
+        expect(config.site.name).toBe('Stories from your Notion publication');
+        expect(config.site.seo.description).toBe('Articles, essays, and updates from this publication.');
+        expect(config.site.seo.locale).toBe('en_US');
+        expect(config.site.seo.robots).toEqual({ index: true, follow: true });
         expect(config.packs).toEqual([
             {
                 name: 'blog',
@@ -82,6 +86,29 @@ describe('shared package', () => {
                 packs: [{ name: 'blog' }, { name: 'blog' }],
             }),
         ).toThrow('Duplicate pack entry "blog"');
+    });
+
+    test('defineConfig derives site name from home header and normalizes seo overrides', () => {
+        const config = defineConfig({
+            notion: {
+                integrationKey: 'test-key',
+            },
+            site: {
+                homeHeader: 'Everything Technology',
+                seo: {
+                    description: 'Practical essays on engineering systems.',
+                    twitterHandle: 'dev_maks',
+                    robots: {
+                        index: false,
+                    },
+                },
+            },
+        });
+
+        expect(config.site.name).toBe('Everything Technology');
+        expect(config.site.seo.description).toBe('Practical essays on engineering systems.');
+        expect(config.site.seo.twitterHandle).toBe('@dev_maks');
+        expect(config.site.seo.robots).toEqual({ index: false, follow: true });
     });
 
     test('slugify and formatDate produce stable values', () => {

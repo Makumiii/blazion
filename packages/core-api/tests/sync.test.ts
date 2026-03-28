@@ -110,7 +110,17 @@ describe('sync service', () => {
                 socials: {},
                 share: { providers: [] },
                 site: {
+                    name: 'Test',
                     homeHeader: 'Test',
+                    seo: {
+                        description: 'Test publication.',
+                        locale: 'en_US',
+                        keywords: [],
+                        robots: {
+                            index: true,
+                            follow: true,
+                        },
+                    },
                 },
                 packs: [{ name: 'blog', enabled: true, options: {} }],
             },
@@ -209,7 +219,17 @@ describe('sync service', () => {
                 socials: {},
                 share: { providers: [] },
                 site: {
+                    name: 'Test',
                     homeHeader: 'Test',
+                    seo: {
+                        description: 'Test publication.',
+                        locale: 'en_US',
+                        keywords: [],
+                        robots: {
+                            index: true,
+                            follow: true,
+                        },
+                    },
                 },
                 packs: [{ name: 'blog', enabled: true, options: {} }],
             },

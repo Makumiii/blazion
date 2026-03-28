@@ -1,3 +1,5 @@
+import { defaultBlogEngineConfig } from '@blazion/shared';
+
 function apiBaseUrl() {
     const configured =
         process.env.BLAZION_API_URL ??
@@ -118,6 +120,7 @@ export async function fetchPostRecommendations(slug, input, options) {
 export async function fetchSiteSettings(options) {
     const url = `${apiBaseUrl()}/api/site`;
     const data = await safeJson(url, options);
+    const defaultSite = defaultBlogEngineConfig.site;
     return {
         socials: data?.data?.socials ?? {},
         share: {
@@ -126,9 +129,51 @@ export async function fetchSiteSettings(options) {
                 : ['x', 'whatsapp', 'facebook', 'linkedin'],
         },
         site: {
+            name:
+                typeof data?.data?.site?.name === 'string' && data.data.site.name.trim().length > 0
+                    ? data.data.site.name
+                    : defaultSite.name,
             homeHeader:
-                data?.data?.site?.homeHeader ??
-                'Stories from your Notion publication',
+                typeof data?.data?.site?.homeHeader === 'string' && data.data.site.homeHeader.trim().length > 0
+                    ? data.data.site.homeHeader
+                    : defaultSite.homeHeader,
+            seo: {
+                description:
+                    typeof data?.data?.site?.seo?.description === 'string' &&
+                    data.data.site.seo.description.trim().length > 0
+                        ? data.data.site.seo.description
+                        : defaultSite.seo.description,
+                locale:
+                    typeof data?.data?.site?.seo?.locale === 'string' &&
+                    data.data.site.seo.locale.trim().length > 0
+                        ? data.data.site.seo.locale
+                        : defaultSite.seo.locale,
+                keywords: Array.isArray(data?.data?.site?.seo?.keywords)
+                    ? data.data.site.seo.keywords.filter(
+                          (keyword) => typeof keyword === 'string' && keyword.trim().length > 0,
+                      )
+                    : defaultSite.seo.keywords,
+                defaultOgImage:
+                    typeof data?.data?.site?.seo?.defaultOgImage === 'string' &&
+                    data.data.site.seo.defaultOgImage.trim().length > 0
+                        ? data.data.site.seo.defaultOgImage
+                        : defaultSite.seo.defaultOgImage,
+                twitterHandle:
+                    typeof data?.data?.site?.seo?.twitterHandle === 'string' &&
+                    data.data.site.seo.twitterHandle.trim().length > 0
+                        ? data.data.site.seo.twitterHandle
+                        : defaultSite.seo.twitterHandle,
+                robots: {
+                    index:
+                        typeof data?.data?.site?.seo?.robots?.index === 'boolean'
+                            ? data.data.site.seo.robots.index
+                            : defaultSite.seo.robots.index,
+                    follow:
+                        typeof data?.data?.site?.seo?.robots?.follow === 'boolean'
+                            ? data.data.site.seo.robots.follow
+                            : defaultSite.seo.robots.follow,
+                },
+            },
         },
     };
 }
